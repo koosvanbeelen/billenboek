@@ -355,3 +355,39 @@ export async function verwijderMedicatie(id: number) {
   await db.delete(medicatie).where(eq(medicatie.id, id))
   herlaad()
 }
+
+// ---------------------------------------------------------------------------
+// Algemene verwijderfunctie op basis van soort
+// ---------------------------------------------------------------------------
+export async function verwijderRegistratie(
+  soort:
+    | "voeding"
+    | "luier"
+    | "temperatuur"
+    | "boertje"
+    | "vitamine"
+    | "medicatie",
+  id: number,
+) {
+  switch (soort) {
+    case "voeding":
+      await db.delete(voedingen).where(eq(voedingen.id, id))
+      break
+    case "luier":
+      await db.delete(luiers).where(eq(luiers.id, id))
+      break
+    case "temperatuur":
+      await db.delete(temperaturen).where(eq(temperaturen.id, id))
+      break
+    case "boertje":
+      await db.delete(boertjesSpugen).where(eq(boertjesSpugen.id, id))
+      break
+    case "vitamine":
+      await db.delete(vitamines).where(eq(vitamines.id, id))
+      break
+    case "medicatie":
+      await db.delete(medicatie).where(eq(medicatie.id, id))
+      break
+  }
+  herlaad()
+}
