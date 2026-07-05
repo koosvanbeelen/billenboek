@@ -7,12 +7,16 @@ export const dynamic = "force-dynamic"
 export default async function GeschiedenisPage({
   searchParams,
 }: {
-  searchParams: Promise<{ datum?: string }>
+  searchParams: Promise<{ datum?: string; detail?: string }>
 }) {
-  const { datum } = await searchParams
+  const { datum, detail } = await searchParams
   const geldig = datum && /^\d{4}-\d{2}-\d{2}$/.test(datum)
   const dag = geldig ? datum : vandaagDatum()
   const data = await getDagGegevens(dag)
 
-  return <GeschiedenisWeergave data={data} />
+  // detail=true: toon detailweergave voor deze dag (als Vandaag)
+  // detail=false/undefined: toon lijstweergave met dagsamenvattingen
+  const toonDetail = detail === "true"
+
+  return <GeschiedenisWeergave data={data} dag={dag} toonDetail={toonDetail} />
 }
