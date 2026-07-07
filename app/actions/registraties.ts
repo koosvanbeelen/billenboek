@@ -1,6 +1,7 @@
 "use server"
 
 import { and, eq, gte, lte } from "drizzle-orm"
+import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import {
@@ -50,7 +51,7 @@ const iso = (d: Date) => d.toISOString()
 export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const { van, tot } = dagGrenzen(datum)
 
-  const binnen = (kolom: typeof voedingen.datumTijd) =>
+  const binnen = (kolom: AnyPgColumn<{ data: Date }>) =>
     and(gte(kolom, van), lte(kolom, tot))
 
   const [vRows, lRows, tRows, bRows, viRows, mRows] = await Promise.all([
