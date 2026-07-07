@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronLeft,
@@ -46,18 +46,22 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const [bezig, start] = useTransition()
 
   // Bij mount: haal samenvattingen op als we in lijstweergave zijn
-  const [mounted, setMounted] = useState(false)
-  if (!mounted && !toonDetail) {
-    setMounted(true)
+  useEffect(() => {
+    if (toonDetail) return
+    let actief = true
     start(async () => {
       try {
         const s = await getGeschiedenis()
-        setSamenvattingen(s)
+        if (actief) setSamenvattingen(s)
       } catch {
-        toast.error("Kon geschiedenis niet laden")
+        if (actief) toast.error("Kon geschiedenis niet laden")
       }
     })
-  }
+    return () => {
+      actief = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toonDetail])
 
   function gaTerug() {
     if (toonDetail) {
