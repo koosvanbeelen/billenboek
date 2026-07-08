@@ -42,7 +42,7 @@ export function DagSamenvattingKaart({ dag }: Props) {
           <Baby className="size-4 text-primary" aria-hidden />
           <div className="flex items-center gap-0.5 text-sm font-bold text-foreground">
             <span>{dag.luiersPoep}</span>
-            <span className="text-xs">💩</span>
+            <span className="text-xs">/</span>
             <span>{dag.luiersPlas}</span>
           </div>
           <div className="text-xs text-muted-foreground">poep/plas</div>
