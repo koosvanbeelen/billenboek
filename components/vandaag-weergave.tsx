@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useState, useTransition } from "react"
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,6 +18,10 @@ import { Button } from "@/components/ui/button"
 import { ActieKnop } from "@/components/actie-knop"
 import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
+import {
+  TijdlijnSorteerKnop,
+  type TijdlijnVolgorde,
+} from "@/components/tijdlijn-sorteer-knop"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { RegistratieDialog, type Bewerking } from "@/components/registratie-dialog"
@@ -28,17 +31,37 @@ import {
   isVandaag,
   vandaagDatum,
 } from "@/lib/datum"
-import { verwijderRegistratie } from "@/app/actions/registraties"
+import { getDagGegevens, verwijderRegistratie } from "@/app/actions/registraties"
 import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
 
-export function VandaagWeergave({ data }: { data: DagGegevens }) {
-  const router = useRouter()
+export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
+  const [data, setData] = useState(initieleData)
   const [bewerking, setBewerking] = useState<Bewerking | null>(null)
   const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
+  const [volgorde, setVolgorde] = useState<TijdlijnVolgorde>("oud-nieuw")
   const [bezig, start] = useTransition()
 
+  const items = useMemo(() => {
+    const teken = volgorde === "oud-nieuw" ? 1 : -1
+    return [...data.items].sort(
+      (a, b) =>
+        teken *
+        (new Date(a.datumTijd).getTime() - new Date(b.datumTijd).getTime()),
+    )
+  }, [data.items, volgorde])
+
+  // Alle dag-navigatie blijft bewust client-side (React state) in plaats van
+  // in de URL. Zo kan een herstelde/gebookmarkte URL nooit een oude datum
+  // "bevriezen" wanneer de app opnieuw geopend wordt.
+  function ververs(nieuweDatum: string) {
+    start(async () => {
+      const nieuweData = await getDagGegevens(nieuweDatum)
+      setData(nieuweData)
+    })
+  }
+
   function ga(dagen: number) {
-    router.push(`/?datum=${verschuifDatum(data.datum, dagen)}`)
+    ververs(verschuifDatum(data.datum, dagen))
   }
 
   function nieuw(soort: Soort) {
@@ -57,7 +80,8 @@ export function VandaagWeergave({ data }: { data: DagGegevens }) {
       try {
         await verwijderRegistratie(item.soort, item.id)
         toast.success("Verwijderd")
-        router.refresh()
+        const nieuweData = await getDagGegevens(data.datum)
+        setData(nieuweData)
       } catch {
         toast.error("Verwijderen mislukt")
       }
@@ -93,7 +117,7 @@ export function VandaagWeergave({ data }: { data: DagGegevens }) {
           variant="outline"
           size="sm"
           className="self-center"
-          onClick={() => router.push(`/?datum=${vandaagDatum()}`)}
+          onClick={() => ververs(vandaagDatum())}
         >
           <CalendarDays className="size-4" data-icon="inline-start" />
           Terug naar vandaag
@@ -114,9 +138,14 @@ export function VandaagWeergave({ data }: { data: DagGegevens }) {
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Tijdlijn
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Tijdlijn
+          </h2>
+          {data.items.length > 0 && (
+            <TijdlijnSorteerKnop volgorde={volgorde} onWijzig={setVolgorde} />
+          )}
+        </div>
         {data.items.length === 0 ? (
           <LegeStatus
             icon={NotebookPen}
@@ -125,7 +154,7 @@ export function VandaagWeergave({ data }: { data: DagGegevens }) {
           />
         ) : (
           <div className={bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"}>
-            {data.items.map((item) => (
+            {items.map((item) => (
               <TijdlijnItem
                 key={`${item.soort}-${item.id}`}
                 item={item}
@@ -141,7 +170,7 @@ export function VandaagWeergave({ data }: { data: DagGegevens }) {
         bewerking={bewerking}
         onClose={() => {
           setBewerking(null)
-          router.refresh()
+          ververs(data.datum)
         }}
       />
 
