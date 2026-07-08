@@ -64,7 +64,9 @@ export const medicatieSchema = z.object({
 })
 
 export const notitieSchema = z.object({
-  notitie: z.string().min(1, "Schrijf eerst iets").max(2000),
+  // Max is verhoogd t.o.v. voorheen omdat opmaaktekens (**, *, -, [ ], 1.)
+  // meetellen in de lengte van de opgeslagen tekst.
+  notitie: z.string().min(1, "Schrijf eerst iets").max(4000),
 })
 
 export type VoedingInput = z.infer<typeof voedingSchema>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { NotebookPen } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { NotitieEditor } from "@/components/notitie-editor"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { NotitieKaart } from "@/components/notitie-kaart"
@@ -59,12 +59,10 @@ export function NotitiesWeergave({ notities }: { notities: NotitieItem[] }) {
 
       {/* Nieuwe notitie toevoegen */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
-        <Textarea
-          value={nieuweNotitie}
-          onChange={(e) => setNieuweNotitie(e.target.value)}
-          placeholder="Schrijf een losse gedachte of aantekening..."
+        <NotitieEditor
+          waarde={nieuweNotitie}
+          onWaardeChange={setNieuweNotitie}
           rows={3}
-          className="text-base"
         />
         <Button
           onClick={toevoegen}

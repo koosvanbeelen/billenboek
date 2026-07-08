@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil, Trash2, X, Check } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { werkNotitieBij } from "@/app/actions/notities"
+import { NotitieEditor } from "@/components/notitie-editor"
+import { NotitieWeergaveTekst } from "@/components/notitie-weergave-tekst"
+import { werkNotitieBij, vinkNotitieRegelAf } from "@/app/actions/notities"
 import { formatDatumLang, formatTijd } from "@/lib/datum"
+import { toggleCheckboxRegel } from "@/lib/notitie-opmaak"
 import type { NotitieItem } from "@/lib/types"
 
 type Props = {
@@ -23,9 +25,30 @@ export function NotitieKaart({ item, onVerwijder }: Props) {
   const [waarde, setWaarde] = useState(item.notitie)
   const [bezig, setBezig] = useState(false)
 
+  // Los bijgehouden van `waarde` (het bewerkveld), zodat een checklist-tik
+  // meteen zichtbaar is zonder op de volledige paginaverversing te wachten.
+  const [weergaveTekst, setWeergaveTekst] = useState(item.notitie)
+
+  useEffect(() => {
+    setWeergaveTekst(item.notitie)
+    setWaarde(item.notitie)
+  }, [item.notitie])
+
   function annuleer() {
     setWaarde(item.notitie)
     setBewerken(false)
+  }
+
+  async function vinkAf(regelIndex: number) {
+    const vorigeTekst = weergaveTekst
+    setWeergaveTekst(toggleCheckboxRegel(weergaveTekst, regelIndex)) // optimistisch
+    try {
+      await vinkNotitieRegelAf(item.id, regelIndex)
+      router.refresh()
+    } catch {
+      setWeergaveTekst(vorigeTekst)
+      toast.error("Bijwerken mislukt")
+    }
   }
 
   async function opslaan() {
@@ -76,12 +99,11 @@ export function NotitieKaart({ item, onVerwijder }: Props) {
 
       {bewerken ? (
         <div className="flex flex-col gap-3">
-          <Textarea
-            value={waarde}
-            onChange={(e) => setWaarde(e.target.value)}
+          <NotitieEditor
+            waarde={waarde}
+            onWaardeChange={setWaarde}
             rows={3}
             autoFocus
-            className="text-base"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={annuleer} disabled={bezig}>
@@ -99,9 +121,7 @@ export function NotitieKaart({ item, onVerwijder }: Props) {
           </div>
         </div>
       ) : (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-card-foreground">
-          {item.notitie}
-        </p>
+        <NotitieWeergaveTekst tekst={weergaveTekst} onVinkAf={vinkAf} />
       )}
     </div>
   )
