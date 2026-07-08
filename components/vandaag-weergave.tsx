@@ -1,0 +1,186 @@
+"use client"
+
+import { useMemo, useState, useTransition } from "react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Milk,
+  Baby,
+  Thermometer,
+  Wind,
+  Sparkles,
+  Pill,
+  CalendarDays,
+  NotebookPen,
+} from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { ActieKnop } from "@/components/actie-knop"
+import { DagTellersRij } from "@/components/dag-tellers"
+import { TijdlijnItem } from "@/components/tijdlijn-item"
+import {
+  TijdlijnSorteerKnop,
+  type TijdlijnVolgorde,
+} from "@/components/tijdlijn-sorteer-knop"
+import { LegeStatus } from "@/components/lege-status"
+import { BevestigDialog } from "@/components/bevestig-dialog"
+import { RegistratieDialog, type Bewerking } from "@/components/registratie-dialog"
+import {
+  formatDatumLang,
+  verschuifDatum,
+  isVandaag,
+  vandaagDatum,
+} from "@/lib/datum"
+import { getDagGegevens, verwijderRegistratie } from "@/app/actions/registraties"
+import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
+
+export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
+  const [data, setData] = useState(initieleData)
+  const [bewerking, setBewerking] = useState<Bewerking | null>(null)
+  const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
+  const [volgorde, setVolgorde] = useState<TijdlijnVolgorde>("oud-nieuw")
+  const [bezig, start] = useTransition()
+
+  const items = useMemo(() => {
+    const teken = volgorde === "oud-nieuw" ? 1 : -1
+    return [...data.items].sort(
+      (a, b) =>
+        teken *
+        (new Date(a.datumTijd).getTime() - new Date(b.datumTijd).getTime()),
+    )
+  }, [data.items, volgorde])
+
+  // Alle dag-navigatie blijft bewust client-side (React state) in plaats van
+  // in de URL. Zo kan een herstelde/gebookmarkte URL nooit een oude datum
+  // "bevriezen" wanneer de app opnieuw geopend wordt.
+  function ververs(nieuweDatum: string) {
+    start(async () => {
+      const nieuweData = await getDagGegevens(nieuweDatum)
+      setData(nieuweData)
+    })
+  }
+
+  function ga(dagen: number) {
+    ververs(verschuifDatum(data.datum, dagen))
+  }
+
+  function nieuw(soort: Soort) {
+    setBewerking({ soort } as Bewerking)
+  }
+
+  function bewerk(item: Item) {
+    setBewerking({ soort: item.soort, record: item.record } as Bewerking)
+  }
+
+  function bevestigVerwijderen() {
+    if (!teVerwijderen) return
+    const item = teVerwijderen
+    setTeVerwijderen(null)
+    start(async () => {
+      try {
+        await verwijderRegistratie(item.soort, item.id)
+        toast.success("Verwijderd")
+        const nieuweData = await getDagGegevens(data.datum)
+        setData(nieuweData)
+      } catch {
+        toast.error("Verwijderen mislukt")
+      }
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Datumnavigatie */}
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="icon" onClick={() => ga(-1)} aria-label="Vorige dag">
+          <ChevronLeft className="size-5" />
+        </Button>
+        <div className="text-center">
+          <p className="font-heading text-base font-semibold capitalize text-foreground">
+            {isVandaag(data.datum) ? "Vandaag" : formatDatumLang(data.datum).split(" ")[0]}
+          </p>
+          <p className="text-xs text-muted-foreground">{formatDatumLang(data.datum)}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => ga(1)}
+          aria-label="Volgende dag"
+          disabled={isVandaag(data.datum)}
+        >
+          <ChevronRight className="size-5" />
+        </Button>
+      </div>
+
+      {!isVandaag(data.datum) && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-center"
+          onClick={() => ververs(vandaagDatum())}
+        >
+          <CalendarDays className="size-4" data-icon="inline-start" />
+          Terug naar vandaag
+        </Button>
+      )}
+
+      <DagTellersRij tellers={data.tellers} />
+
+      {/* Actieknoppen */}
+      <div className="grid grid-cols-3 gap-2">
+        <ActieKnop label="Voeding" icon={Milk} onClick={() => nieuw("voeding")} />
+        <ActieKnop label="Luier" icon={Baby} onClick={() => nieuw("luier")} />
+        <ActieKnop label="Temperatuur" icon={Thermometer} onClick={() => nieuw("temperatuur")} />
+        <ActieKnop label="Boertje" icon={Wind} onClick={() => nieuw("boertje")} />
+        <ActieKnop label="Vitamine" icon={Sparkles} onClick={() => nieuw("vitamine")} />
+        <ActieKnop label="Medicatie" icon={Pill} onClick={() => nieuw("medicatie")} />
+      </div>
+
+      {/* Tijdlijn */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Tijdlijn
+          </h2>
+          {data.items.length > 0 && (
+            <TijdlijnSorteerKnop volgorde={volgorde} onWijzig={setVolgorde} />
+          )}
+        </div>
+        {data.items.length === 0 ? (
+          <LegeStatus
+            icon={NotebookPen}
+            titel="Nog niks vandaag"
+            beschrijving="Tik op een knop hierboven om de eerste registratie toe te voegen."
+          />
+        ) : (
+          <div className={bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"}>
+            {items.map((item) => (
+              <TijdlijnItem
+                key={`${item.soort}-${item.id}`}
+                item={item}
+                onBewerk={() => bewerk(item)}
+                onVerwijder={() => setTeVerwijderen(item)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <RegistratieDialog
+        bewerking={bewerking}
+        onClose={() => {
+          setBewerking(null)
+          ververs(data.datum)
+        }}
+      />
+
+      <BevestigDialog
+        open={teVerwijderen !== null}
+        onOpenChange={(o) => !o && setTeVerwijderen(null)}
+        titel="Registratie verwijderen?"
+        beschrijving="Dit kan niet ongedaan worden gemaakt."
+        onBevestig={bevestigVerwijderen}
+      />
+    </div>
+  )
+}
