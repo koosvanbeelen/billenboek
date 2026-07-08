@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronLeft,
@@ -18,10 +18,6 @@ import { Button } from "@/components/ui/button"
 import { ActieKnop } from "@/components/actie-knop"
 import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
-import {
-  TijdlijnSorteerKnop,
-  type TijdlijnVolgorde,
-} from "@/components/tijdlijn-sorteer-knop"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import {
@@ -44,34 +40,28 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const router = useRouter()
   const [bewerking, setBewerking] = useState<Bewerking | null>(null)
   const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
-  const [volgorde, setVolgorde] = useState<TijdlijnVolgorde>("oud-nieuw")
   const [samenvattingen, setSamenvattingen] = useState<
     Awaited<ReturnType<typeof getGeschiedenis>> | null
   >(null)
   const [bezig, start] = useTransition()
 
-  const items = useMemo(() => {
-    const teken = volgorde === "oud-nieuw" ? 1 : -1
-    return [...data.items].sort(
-      (a, b) =>
-        teken *
-        (new Date(a.datumTijd).getTime() - new Date(b.datumTijd).getTime()),
-    )
-  }, [data.items, volgorde])
-
   // Bij mount: haal samenvattingen op als we in lijstweergave zijn
-  const [mounted, setMounted] = useState(false)
-  if (!mounted && !toonDetail) {
-    setMounted(true)
+  useEffect(() => {
+    if (toonDetail) return
+    let actief = true
     start(async () => {
       try {
         const s = await getGeschiedenis()
-        setSamenvattingen(s)
+        if (actief) setSamenvattingen(s)
       } catch {
-        toast.error("Kon geschiedenis niet laden")
+        if (actief) toast.error("Kon geschiedenis niet laden")
       }
     })
-  }
+    return () => {
+      actief = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toonDetail])
 
   function gaTerug() {
     if (toonDetail) {
@@ -196,14 +186,9 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Tijdlijn
-          </h2>
-          {data.items.length > 0 && (
-            <TijdlijnSorteerKnop volgorde={volgorde} onWijzig={setVolgorde} />
-          )}
-        </div>
+        <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Tijdlijn
+        </h2>
         {data.items.length === 0 ? (
           <LegeStatus
             icon={Calendar}
@@ -216,7 +201,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
               bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"
             }
           >
-            {items.map((item) => (
+            {data.items.map((item) => (
               <TijdlijnItem
                 key={`${item.soort}-${item.id}`}
                 item={item}
