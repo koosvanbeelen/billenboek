@@ -4,6 +4,7 @@ import { Nunito } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { PwaInstallProvider } from "@/components/pwa-install-provider"
+import { PwaSplash } from "@/components/pwa-splash"
 import "./globals.css"
 
 const nunito = Nunito({
@@ -49,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="nl" className={`${nunito.variable} bg-background`} suppressHydrationWarning>
       <body className="font-sans antialiased">
+        <PwaSplash />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
