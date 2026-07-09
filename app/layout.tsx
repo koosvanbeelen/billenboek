@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Nunito } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { PwaInstallProvider } from "@/components/pwa-install-provider"
 import "./globals.css"
 
 const nunito = Nunito({
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
   },
 }
 
@@ -54,8 +55,10 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
-          <Toaster position="top-center" richColors />
+          <PwaInstallProvider>
+            {children}
+            <Toaster position="top-center" richColors />
+          </PwaInstallProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
