@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   ChevronLeft,
@@ -25,6 +25,7 @@ import {
   type Bewerking,
 } from "@/components/registratie-dialog"
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
+import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
 import { verschuifDatum, isVandaag, vandaagDatum, formatDatumLang } from "@/lib/datum"
@@ -44,6 +45,18 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
     Awaited<ReturnType<typeof getGeschiedenis>> | null
   >(null)
   const [bezig, start] = useTransition()
+  const [volgorde] = useTijdlijnVolgorde()
+
+  // Respecteer dezelfde tijdlijn-voorkeur als "Vandaag" (in te stellen via
+  // Instellingen).
+  const items = useMemo(() => {
+    const teken = volgorde === "oud-nieuw" ? 1 : -1
+    return [...data.items].sort(
+      (a, b) =>
+        teken *
+        (new Date(a.datumTijd).getTime() - new Date(b.datumTijd).getTime()),
+    )
+  }, [data.items, volgorde])
 
   // Bij mount: haal samenvattingen op als we in lijstweergave zijn
   useEffect(() => {
@@ -201,7 +214,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
               bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"
             }
           >
-            {data.items.map((item) => (
+            {items.map((item) => (
               <TijdlijnItem
                 key={`${item.soort}-${item.id}`}
                 item={item}

@@ -11,6 +11,7 @@ import {
   XCircle,
   Smartphone,
   Share,
+  ArrowDownNarrowWide,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -19,6 +20,10 @@ import { Separator } from "@/components/ui/separator"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { controleerDatabase } from "@/app/actions/systeem"
 import { usePwaInstall } from "@/components/pwa-install-provider"
+import {
+  useTijdlijnVolgorde,
+  resetTijdlijnVolgorde,
+} from "@/lib/tijdlijn-voorkeur"
 
 type DbStatus = { ok: boolean; bericht: string }
 
@@ -29,6 +34,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
 
   const { theme, setTheme } = useTheme()
   const { installable, installed, isIos, promptInstall } = usePwaInstall()
+  const [volgorde, setVolgorde] = useTijdlijnVolgorde()
 
   const [installBezig, setInstallBezig] = useState(false)
 
@@ -69,6 +75,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
 
   function resetVoorkeuren() {
     setTheme("light")
+    resetTijdlijnVolgorde()
     setDbStatus(null)
     setResetOpen(false)
     toast.success("Voorkeuren gereset")
@@ -101,6 +108,34 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
                 setTheme(checked ? "dark" : "light")
               }
               aria-label="Donkere modus aan of uit"
+            />
+          ) : (
+            <div className="h-[18.4px] w-[32px]" aria-hidden />
+          )}
+        </div>
+      </section>
+
+      {/* Tijdlijn */}
+      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <ArrowDownNarrowWide className="size-5 text-primary" aria-hidden />
+            <div className="flex flex-col">
+              <span className="text-base font-medium text-card-foreground">
+                Nieuwste eerst
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Bepaalt de volgorde van de tijdlijn in Vandaag en Geschiedenis
+              </span>
+            </div>
+          </div>
+          {mounted ? (
+            <Switch
+              checked={volgorde === "nieuw-oud"}
+              onCheckedChange={(checked) =>
+                setVolgorde(checked ? "nieuw-oud" : "oud-nieuw")
+              }
+              aria-label="Nieuwste eerst aan of uit"
             />
           ) : (
             <div className="h-[18.4px] w-[32px]" aria-hidden />
@@ -228,7 +263,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
         open={resetOpen}
         onOpenChange={setResetOpen}
         titel="Voorkeuren resetten?"
-        beschrijving="Donkere modus wordt uitgezet en de weergave gaat terug naar de standaardinstellingen."
+        beschrijving="Donkere modus wordt uitgezet en de tijdlijnvolgorde gaat terug naar oudste eerst."
         onBevestig={resetVoorkeuren}
       />
     </div>
