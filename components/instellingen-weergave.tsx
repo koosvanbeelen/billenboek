@@ -9,6 +9,8 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
+  Smartphone,
+  Share,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -16,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { controleerDatabase } from "@/app/actions/systeem"
+import { usePwaInstall } from "@/components/pwa-install-provider"
 
 type DbStatus = { ok: boolean; bericht: string }
 
@@ -25,6 +28,23 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
   useEffect(() => setMounted(true), [])
 
   const { theme, setTheme } = useTheme()
+  const { installable, installed, isIos, promptInstall } = usePwaInstall()
+
+  const [installBezig, setInstallBezig] = useState(false)
+
+  async function installeerApp() {
+    setInstallBezig(true)
+    try {
+      const uitkomst = await promptInstall()
+      if (uitkomst === "accepted") {
+        toast.success("Billenboek wordt geïnstalleerd")
+      } else if (uitkomst === "unavailable") {
+        toast.error("Installeren is nu niet beschikbaar in deze browser")
+      }
+    } finally {
+      setInstallBezig(false)
+    }
+  }
 
   const [dbBezig, setDbBezig] = useState(false)
   const [dbStatus, setDbStatus] = useState<DbStatus | null>(null)
@@ -86,6 +106,44 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
             <div className="h-[18.4px] w-[32px]" aria-hidden />
           )}
         </div>
+      </section>
+
+      {/* App installeren */}
+      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center gap-3">
+          <Smartphone className="size-5 text-primary" aria-hidden />
+          <div className="flex flex-col">
+            <span className="text-base font-medium text-card-foreground">
+              App installeren
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Zet Billenboek op je startscherm voor snelle toegang
+            </span>
+          </div>
+        </div>
+
+        {installed ? (
+          <div className="flex items-center gap-2 rounded-xl bg-temp-good/15 px-3 py-2 text-sm font-medium text-temp-good">
+            <CheckCircle2 className="size-4 flex-none" aria-hidden />
+            Billenboek is al geïnstalleerd op dit apparaat
+          </div>
+        ) : installable ? (
+          <Button onClick={installeerApp} disabled={installBezig}>
+            {installBezig ? "Bezig..." : "Installeer app"}
+          </Button>
+        ) : isIos ? (
+          <div className="flex items-start gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <Share className="size-4 flex-none translate-y-0.5" aria-hidden />
+            <span>
+              Tik op <strong className="text-card-foreground">Deel</strong> onderin Safari en kies
+              vervolgens <strong className="text-card-foreground">Zet op beginscherm</strong>.
+            </span>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Installeren wordt niet ondersteund in deze browser.
+          </p>
+        )}
       </section>
 
       {/* Systeem */}
