@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 
-const ZICHTBAAR_MS = 1000
-const FADE_MS = 300
+const ZICHTBAAR_MS = 1500
+const FADE_MS = 600
 
 export function PwaSplash() {
   const [zichtbaar, setZichtbaar] = useState(true)
