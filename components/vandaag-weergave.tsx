@@ -18,10 +18,8 @@ import { Button } from "@/components/ui/button"
 import { ActieKnop } from "@/components/actie-knop"
 import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
-import {
-  TijdlijnSorteerKnop,
-  type TijdlijnVolgorde,
-} from "@/components/tijdlijn-sorteer-knop"
+import { TijdlijnSorteerKnop } from "@/components/tijdlijn-sorteer-knop"
+import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { RegistratieDialog, type Bewerking } from "@/components/registratie-dialog"
@@ -38,7 +36,7 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
   const [data, setData] = useState(initieleData)
   const [bewerking, setBewerking] = useState<Bewerking | null>(null)
   const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
-  const [volgorde, setVolgorde] = useState<TijdlijnVolgorde>("oud-nieuw")
+  const [volgorde, setVolgorde] = useTijdlijnVolgorde()
   const [bezig, start] = useTransition()
 
   const items = useMemo(() => {
