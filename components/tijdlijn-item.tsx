@@ -17,6 +17,9 @@ function samenvatting(item: Item): React.ReactNode {
           r.borst === "beide" ? "beide borsten" : `${r.borst}er borst`
         return `Borstvoeding · ${borst}${r.duurMinuten ? ` · ${r.duurMinuten} min` : ""}`
       }
+      if (r.type === "kolfmelk") {
+        return `Gekolfde melk${r.hoeveelheidMl ? ` · ${r.hoeveelheidMl} ml` : ""}`
+      }
       return `Kunstvoeding${r.hoeveelheidMl ? ` · ${r.hoeveelheidMl} ml` : ""}`
     }
     case "luier": {
