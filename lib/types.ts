@@ -9,7 +9,7 @@ export type Soort =
 export type VoedingItem = {
   id: number
   datumTijd: string
-  type: "borstvoeding" | "kunstvoeding"
+  type: "borstvoeding" | "kolfmelk" | "kunstvoeding"
   borst: "links" | "rechts" | "beide" | null
   duurMinuten: number | null
   hoeveelheidMl: number | null
