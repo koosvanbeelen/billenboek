@@ -19,7 +19,7 @@ type Props = {
 
 export function VoedingFormulier({ bestaand, onKlaar }: Props) {
   const [bezig, setBezig] = useState(false)
-  const [type, setType] = useState<"borstvoeding" | "kunstvoeding">(
+  const [type, setType] = useState<"borstvoeding" | "kolfmelk" | "kunstvoeding">(
     bestaand?.type ?? "borstvoeding",
   )
   const [borst, setBorst] = useState<"links" | "rechts" | "beide">(
@@ -45,7 +45,7 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
         borst: type === "borstvoeding" ? borst : undefined,
         duurMinuten: type === "borstvoeding" && duur ? Number(duur) : undefined,
         hoeveelheidMl:
-          type === "kunstvoeding" && hoeveelheid
+          type !== "borstvoeding" && hoeveelheid
             ? Number(hoeveelheid)
             : undefined,
         notitie: notitie.trim() || undefined,
@@ -70,6 +70,7 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
           onChange={setType}
           opties={[
             { waarde: "borstvoeding", label: "Borstvoeding" },
+            { waarde: "kolfmelk", label: "Gekolfde melk" },
             { waarde: "kunstvoeding", label: "Kunstvoeding" },
           ]}
         />
@@ -90,7 +91,7 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
         </Field>
       )}
 
-      {type === "borstvoeding" ? (
+      {type === "borstvoeding" && (
         <Field>
           <FieldLabel htmlFor="duur">Duur (minuten)</FieldLabel>
           <Input
@@ -104,7 +105,9 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
             className="h-12 text-base"
           />
         </Field>
-      ) : (
+      )}
+
+      {(type === "kolfmelk" || type === "kunstvoeding") && (
         <Field>
           <FieldLabel htmlFor="ml">Hoeveelheid (ml)</FieldLabel>
           <Input
