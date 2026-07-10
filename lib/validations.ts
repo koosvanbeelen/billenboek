@@ -9,7 +9,7 @@ const datumTijd = z
 export const voedingSchema = z
   .object({
     datumTijd,
-    type: z.enum(["borstvoeding", "kunstvoeding"]),
+    type: z.enum(["borstvoeding", "kolfmelk", "kunstvoeding"]),
     borst: z.enum(["links", "rechts", "beide"]).optional(),
     duurMinuten: z.coerce.number().int().min(0).max(360).optional(),
     hoeveelheidMl: z.coerce.number().int().min(0).max(2000).optional(),
