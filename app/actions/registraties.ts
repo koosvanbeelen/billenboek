@@ -169,7 +169,7 @@ export async function voegVoedingToe(input: VoedingInput) {
     type: d.type,
     borst: d.type === "borstvoeding" ? d.borst : null,
     duurMinuten: d.type === "borstvoeding" ? d.duurMinuten ?? null : null,
-    hoeveelheidMl: d.type === "kunstvoeding" ? d.hoeveelheidMl ?? null : null,
+    hoeveelheidMl: d.type !== "borstvoeding" ? d.hoeveelheidMl ?? null : null,
     notitie: d.notitie || null,
   })
   herlaad()
@@ -184,7 +184,7 @@ export async function werkVoedingBij(id: number, input: VoedingInput) {
       type: d.type,
       borst: d.type === "borstvoeding" ? d.borst : null,
       duurMinuten: d.type === "borstvoeding" ? d.duurMinuten ?? null : null,
-      hoeveelheidMl: d.type === "kunstvoeding" ? d.hoeveelheidMl ?? null : null,
+      hoeveelheidMl: d.type !== "borstvoeding" ? d.hoeveelheidMl ?? null : null,
       notitie: d.notitie || null,
       bijgewerktOp: new Date(),
     })
