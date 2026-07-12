@@ -63,6 +63,53 @@ export const medicatieSchema = z.object({
   notitie: z.string().max(500).optional(),
 })
 
+export const groeiSchema = z
+  .object({
+    datumTijd,
+    gewichtKg: z.coerce.number().min(0).max(50).optional(),
+    lengteCm: z.coerce.number().min(0).max(150).optional(),
+    opmerking: z.string().max(500).optional(),
+  })
+  .refine((d) => d.gewichtKg !== undefined || d.lengteCm !== undefined, {
+    message: "Vul gewicht of lengte in",
+    path: ["gewichtKg"],
+  })
+
+export const slaapSchema = z
+  .object({
+    start: datumTijd,
+    einde: datumTijd,
+    locatie: z.string().max(120).optional(),
+    notitie: z.string().max(500).optional(),
+  })
+  .refine((d) => new Date(`${d.einde}:00.000Z`) > new Date(`${d.start}:00.000Z`), {
+    message: "Einde moet na start liggen",
+    path: ["einde"],
+  })
+
+export const huilSchema = z
+  .object({
+    start: datumTijd,
+    einde: datumTijd,
+    oorzaak: z.string().max(120).optional(),
+    troost: z.string().max(120).optional(),
+  })
+  .refine((d) => new Date(`${d.einde}:00.000Z`) > new Date(`${d.start}:00.000Z`), {
+    message: "Einde moet na start liggen",
+    path: ["einde"],
+  })
+
+export const kolfSchema = z.object({
+  datumTijd,
+  borst: z.enum(["links", "rechts", "beide"]),
+  hoeveelheidMl: z.coerce
+    .number({ message: "Vul de hoeveelheid in" })
+    .int()
+    .min(0)
+    .max(2000),
+  notitie: z.string().max(500).optional(),
+})
+
 export const notitieSchema = z.object({
   // Max is verhoogd t.o.v. voorheen omdat opmaaktekens (**, *, -, [ ], 1.)
   // meetellen in de lengte van de opgeslagen tekst.
@@ -76,3 +123,7 @@ export type BoertjeInput = z.infer<typeof boertjeSchema>
 export type VitamineInput = z.infer<typeof vitamineSchema>
 export type MedicatieInput = z.infer<typeof medicatieSchema>
 export type NotitieInput = z.infer<typeof notitieSchema>
+export type GroeiInput = z.infer<typeof groeiSchema>
+export type SlaapInput = z.infer<typeof slaapSchema>
+export type HuilInput = z.infer<typeof huilSchema>
+export type KolfInput = z.infer<typeof kolfSchema>

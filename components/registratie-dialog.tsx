@@ -15,10 +15,18 @@ import { TemperatuurFormulier } from "@/components/formulieren/temperatuur-formu
 import { BoertjeFormulier } from "@/components/formulieren/boertje-formulier"
 import { VitamineFormulier } from "@/components/formulieren/vitamine-formulier"
 import { MedicatieFormulier } from "@/components/formulieren/medicatie-formulier"
+import { GroeiFormulier } from "@/components/formulieren/groei-formulier"
+import { SlaapFormulier } from "@/components/formulieren/slaap-formulier"
+import { HuilFormulier } from "@/components/formulieren/huil-formulier"
+import { KolfFormulier } from "@/components/formulieren/kolf-formulier"
 import type {
   BoertjeItem,
+  GroeiItem,
+  HuilItem,
+  KolfItem,
   LuierItem,
   MedicatieItem,
+  SlaapItem,
   Soort,
   TemperatuurItem,
   VitamineItem,
@@ -32,6 +40,10 @@ const titels: Record<Soort, string> = {
   boertje: "Boertje / spugen",
   vitamine: "Vitamine",
   medicatie: "Medicatie",
+  groei: "Groei",
+  slapen: "Slapen",
+  huilen: "Huilen",
+  kolven: "Kolven",
 }
 
 export type Bewerking =
@@ -41,6 +53,10 @@ export type Bewerking =
   | { soort: "boertje"; record?: BoertjeItem }
   | { soort: "vitamine"; record?: VitamineItem }
   | { soort: "medicatie"; record?: MedicatieItem }
+  | { soort: "groei"; record?: GroeiItem }
+  | { soort: "slapen"; record?: SlaapItem }
+  | { soort: "huilen"; record?: HuilItem }
+  | { soort: "kolven"; record?: KolfItem }
 
 export function RegistratieDialog({
   bewerking,
@@ -57,7 +73,7 @@ export function RegistratieDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       {bewerking && (
         <DialogContent className="top-auto bottom-0 left-1/2 max-h-[90dvh] w-full max-w-md translate-y-0 overflow-y-auto rounded-b-none rounded-t-3xl pb-safe sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl data-open:sm:zoom-in-95">
-          <DialogHeader className="flex-row items-start justify-between gap-2 text-left">
+          <DialogHeader className="flex-row items-start justify-between gap-2 pr-8 text-left">
             <div className="min-w-0">
               <DialogTitle className="text-lg">
                 {bewerking.record ? "Bewerk " : "Nieuwe "}
@@ -98,6 +114,18 @@ export function RegistratieDialog({
           )}
           {bewerking.soort === "medicatie" && (
             <MedicatieFormulier bestaand={bewerking.record} onKlaar={onClose} />
+          )}
+          {bewerking.soort === "groei" && (
+            <GroeiFormulier bestaand={bewerking.record} onKlaar={onClose} />
+          )}
+          {bewerking.soort === "slapen" && (
+            <SlaapFormulier bestaand={bewerking.record} onKlaar={onClose} />
+          )}
+          {bewerking.soort === "huilen" && (
+            <HuilFormulier bestaand={bewerking.record} onKlaar={onClose} />
+          )}
+          {bewerking.soort === "kolven" && (
+            <KolfFormulier bestaand={bewerking.record} onKlaar={onClose} />
           )}
         </DialogContent>
       )}

@@ -1,18 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Milk,
-  Baby,
-  Thermometer,
-  Wind,
-  Sparkles,
-  Pill,
-  CalendarDays,
-  NotebookPen,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, CalendarDays, NotebookPen } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ActieKnop } from "@/components/actie-knop"
@@ -20,6 +9,8 @@ import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { TijdlijnSorteerKnop } from "@/components/tijdlijn-sorteer-knop"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
+import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
+import { soortMeta } from "@/lib/soorten"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
 import { RegistratieDialog, type Bewerking } from "@/components/registratie-dialog"
@@ -40,7 +31,13 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
     id: number
   } | null>(null)
   const [volgorde, setVolgorde] = useTijdlijnVolgorde()
+  const [zichtbaar] = useZichtbareFormulieren()
   const [bezig, start] = useTransition()
+
+  const zichtbareSoorten = useMemo(
+    () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
+    [zichtbaar],
+  )
 
   const items = useMemo(() => {
     const teken = volgorde === "oud-nieuw" ? 1 : -1
@@ -136,14 +133,21 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
       <DagTellersRij tellers={data.tellers} />
 
       {/* Actieknoppen */}
-      <div className="grid grid-cols-3 gap-2">
-        <ActieKnop label="Voeding" icon={Milk} onClick={() => nieuw("voeding")} />
-        <ActieKnop label="Luier" icon={Baby} onClick={() => nieuw("luier")} />
-        <ActieKnop label="Temperatuur" icon={Thermometer} onClick={() => nieuw("temperatuur")} />
-        <ActieKnop label="Boertje" icon={Wind} onClick={() => nieuw("boertje")} />
-        <ActieKnop label="Vitamine" icon={Sparkles} onClick={() => nieuw("vitamine")} />
-        <ActieKnop label="Medicatie" icon={Pill} onClick={() => nieuw("medicatie")} />
-      </div>
+      {zichtbareSoorten.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {zichtbareSoorten.map((soort) => {
+            const meta = soortMeta[soort]
+            return (
+              <ActieKnop
+                key={soort}
+                label={meta.label}
+                icon={meta.icon}
+                onClick={() => nieuw(soort)}
+              />
+            )
+          })}
+        </div>
+      )}
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">

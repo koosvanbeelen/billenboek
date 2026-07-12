@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { TemperatuurIndicator } from "@/components/temperatuur-indicator"
 import { soortMeta } from "@/lib/soorten"
-import { formatTijd } from "@/lib/datum"
+import { formatTijd, formatDuur } from "@/lib/datum"
 import type { TijdlijnItem as Item } from "@/lib/types"
 
 function samenvatting(item: Item): React.ReactNode {
@@ -44,6 +44,27 @@ function samenvatting(item: Item): React.ReactNode {
       const r = item.record
       return `${r.naam}${r.dosering ? ` · ${r.dosering}` : ""}`
     }
+    case "groei": {
+      const r = item.record
+      const delen = [
+        r.gewichtKg !== null && `${r.gewichtKg} kg`,
+        r.lengteCm !== null && `${r.lengteCm} cm`,
+      ].filter(Boolean)
+      return delen.join(" · ") || "Groeimeting"
+    }
+    case "slapen":
+      return `Geslapen · ${formatDuur(item.record.duurMinuten)}${
+        item.record.locatie ? ` · ${item.record.locatie}` : ""
+      }`
+    case "huilen":
+      return `Gehuild · ${formatDuur(item.record.duurMinuten)}${
+        item.record.oorzaak ? ` · ${item.record.oorzaak}` : ""
+      }`
+    case "kolven": {
+      const r = item.record
+      const borst = r.borst === "beide" ? "beide borsten" : `${r.borst}er borst`
+      return `Kolven · ${borst} · ${r.hoeveelheidMl} ml`
+    }
   }
 }
 
@@ -54,6 +75,13 @@ function opmerking(item: Item): string | null {
     case "voeding":
     case "medicatie":
     case "boertje":
+    case "slapen":
+      return item.record.notitie || null
+    case "groei":
+      return item.record.opmerking || null
+    case "huilen":
+      return item.record.troost || null
+    case "kolven":
       return item.record.notitie || null
     default:
       return null

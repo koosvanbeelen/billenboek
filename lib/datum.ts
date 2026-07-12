@@ -128,3 +128,19 @@ export function verschuifDatum(datum: string, dagen: number): string {
 export function isVandaag(datum: string): boolean {
   return datum === vandaagDatum()
 }
+
+// Aantal hele minuten tussen twee "yyyy-MM-ddTHH:mm" inputwaarden.
+export function duurInMinuten(start: string, einde: string): number {
+  const van = inputNaarDatum(start).getTime()
+  const tot = inputNaarDatum(einde).getTime()
+  return Math.max(0, Math.round((tot - van) / 60000))
+}
+
+// "1u 25m" of "45m" uit een aantal minuten.
+export function formatDuur(minuten: number): string {
+  const uren = Math.floor(minuten / 60)
+  const rest = minuten % 60
+  if (uren === 0) return `${rest}m`
+  if (rest === 0) return `${uren}u`
+  return `${uren}u ${rest}m`
+}

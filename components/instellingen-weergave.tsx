@@ -12,6 +12,7 @@ import {
   Smartphone,
   Share,
   ArrowDownNarrowWide,
+  ListChecks,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -24,6 +25,13 @@ import {
   useTijdlijnVolgorde,
   resetTijdlijnVolgorde,
 } from "@/lib/tijdlijn-voorkeur"
+import {
+  ALLE_SOORTEN,
+  useZichtbareFormulieren,
+  resetZichtbareFormulieren,
+} from "@/lib/formulier-voorkeur"
+import { soortMeta } from "@/lib/soorten"
+import type { Soort } from "@/lib/types"
 
 type DbStatus = { ok: boolean; bericht: string }
 
@@ -35,6 +43,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
   const { theme, setTheme } = useTheme()
   const { installable, installed, isIos, promptInstall } = usePwaInstall()
   const [volgorde, setVolgorde] = useTijdlijnVolgorde()
+  const [zichtbaar, zetZichtbaar] = useZichtbareFormulieren()
 
   const [installBezig, setInstallBezig] = useState(false)
 
@@ -73,9 +82,19 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
     }
   }
 
+  function wijzigZichtbaarheid(soort: Soort, aan: boolean) {
+    const aantalActief = ALLE_SOORTEN.filter((s) => zichtbaar[s]).length
+    if (!aan && aantalActief <= 1) {
+      toast.error("Minstens één formulier moet actief blijven")
+      return
+    }
+    zetZichtbaar(soort, aan)
+  }
+
   function resetVoorkeuren() {
     setTheme("light")
     resetTijdlijnVolgorde()
+    resetZichtbareFormulieren()
     setDbStatus(null)
     setResetOpen(false)
     toast.success("Voorkeuren gereset")
@@ -87,31 +106,49 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
         Instellingen
       </h1>
 
-      {/* Weergave */}
+      {/* Formulieren */}
       <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Moon className="size-5 text-primary" aria-hidden />
-            <div className="flex flex-col">
-              <span className="text-base font-medium text-card-foreground">
-                Donkere modus
-              </span>
-              <span className="text-sm text-muted-foreground">
-                Lichte modus is de standaard
-              </span>
-            </div>
+        <div className="flex items-center gap-3">
+          <ListChecks className="size-5 text-primary" aria-hidden />
+          <div className="flex flex-col">
+            <span className="text-base font-medium text-card-foreground">
+              Formulieren
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Kies welke registraties je wilt gebruiken. Bestaande gegevens
+              blijven altijd zichtbaar.
+            </span>
           </div>
-          {mounted ? (
-            <Switch
-              checked={theme === "dark"}
-              onCheckedChange={(checked) =>
-                setTheme(checked ? "dark" : "light")
-              }
-              aria-label="Donkere modus aan of uit"
-            />
-          ) : (
-            <div className="h-[18.4px] w-[32px]" aria-hidden />
-          )}
+        </div>
+        <div className="flex flex-col divide-y divide-border">
+          {ALLE_SOORTEN.map((soort) => {
+            const meta = soortMeta[soort]
+            const Icon = meta.icon
+            return (
+              <div
+                key={soort}
+                className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className="size-4 text-muted-foreground" aria-hidden />
+                  <span className="text-sm font-medium text-card-foreground">
+                    {meta.label}
+                  </span>
+                </div>
+                {mounted ? (
+                  <Switch
+                    checked={zichtbaar[soort]}
+                    onCheckedChange={(checked) =>
+                      wijzigZichtbaarheid(soort, checked)
+                    }
+                    aria-label={`${meta.label} aan of uit`}
+                  />
+                ) : (
+                  <div className="h-[18.4px] w-[32px]" aria-hidden />
+                )}
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -143,7 +180,35 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
         </div>
       </section>
 
-      {/* App installeren */}
+      {/* Weergave */}
+      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Moon className="size-5 text-primary" aria-hidden />
+            <div className="flex flex-col">
+              <span className="text-base font-medium text-card-foreground">
+                Donkere modus
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Lichte modus is de standaard
+              </span>
+            </div>
+          </div>
+          {mounted ? (
+            <Switch
+              checked={theme === "dark"}
+              onCheckedChange={(checked) =>
+                setTheme(checked ? "dark" : "light")
+              }
+              aria-label="Donkere modus aan of uit"
+            />
+          ) : (
+            <div className="h-[18.4px] w-[32px]" aria-hidden />
+          )}
+        </div>
+      </section>
+
+      {/* App installeren, databaseverbinding en appversie */}
       <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center gap-3">
           <Smartphone className="size-5 text-primary" aria-hidden />
@@ -179,10 +244,9 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
             Installeren wordt niet ondersteund in deze browser.
           </p>
         )}
-      </section>
 
-      {/* Systeem */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+        <Separator />
+
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <DatabaseZap className="size-5 text-primary" aria-hidden />
@@ -263,7 +327,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
         open={resetOpen}
         onOpenChange={setResetOpen}
         titel="Voorkeuren resetten?"
-        beschrijving="Donkere modus wordt uitgezet en de tijdlijnvolgorde gaat terug naar oudste eerst."
+        beschrijving="Donkere modus wordt uitgezet, de tijdlijnvolgorde gaat terug naar oudste eerst en alle formulieren worden weer actief."
         onBevestig={resetVoorkeuren}
       />
     </div>
