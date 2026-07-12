@@ -5,6 +5,10 @@ import {
   Wind,
   Pill,
   Sparkles,
+  Ruler,
+  Moon,
+  Frown,
+  FlaskConical,
   type LucideIcon,
 } from "lucide-react"
 import type { Soort } from "@/lib/types"
@@ -30,5 +34,25 @@ export const soortMeta: Record<
     label: "Medicatie",
     icon: Pill,
     kleur: "text-indigo-600 bg-indigo-500/10",
+  },
+  groei: {
+    label: "Groei",
+    icon: Ruler,
+    kleur: "text-emerald-600 bg-emerald-500/10",
+  },
+  slapen: {
+    label: "Slapen",
+    icon: Moon,
+    kleur: "text-violet-600 bg-violet-500/10",
+  },
+  huilen: {
+    label: "Huilen",
+    icon: Frown,
+    kleur: "text-orange-600 bg-orange-500/10",
+  },
+  kolven: {
+    label: "Kolven",
+    icon: FlaskConical,
+    kleur: "text-cyan-600 bg-cyan-500/10",
   },
 }

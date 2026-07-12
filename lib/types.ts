@@ -5,6 +5,10 @@ export type Soort =
   | "boertje"
   | "vitamine"
   | "medicatie"
+  | "groei"
+  | "slapen"
+  | "huilen"
+  | "kolven"
 
 export type VoedingItem = {
   id: number
@@ -51,6 +55,42 @@ export type MedicatieItem = {
   notitie: string | null
 }
 
+export type GroeiItem = {
+  id: number
+  datumTijd: string
+  gewichtKg: number | null
+  lengteCm: number | null
+  opmerking: string | null
+}
+
+export type SlaapItem = {
+  id: number
+  datumTijd: string // gelijk aan `start`, gebruikt voor tijdlijn-sortering
+  start: string
+  einde: string
+  duurMinuten: number
+  locatie: string | null
+  notitie: string | null
+}
+
+export type HuilItem = {
+  id: number
+  datumTijd: string // gelijk aan `start`, gebruikt voor tijdlijn-sortering
+  start: string
+  einde: string
+  duurMinuten: number
+  oorzaak: string | null
+  troost: string | null
+}
+
+export type KolfItem = {
+  id: number
+  datumTijd: string
+  borst: "links" | "rechts" | "beide"
+  hoeveelheidMl: number
+  notitie: string | null
+}
+
 export type TijdlijnItem =
   | { soort: "voeding"; id: number; datumTijd: string; record: VoedingItem }
   | { soort: "luier"; id: number; datumTijd: string; record: LuierItem }
@@ -68,6 +108,10 @@ export type TijdlijnItem =
       datumTijd: string
       record: MedicatieItem
     }
+  | { soort: "groei"; id: number; datumTijd: string; record: GroeiItem }
+  | { soort: "slapen"; id: number; datumTijd: string; record: SlaapItem }
+  | { soort: "huilen"; id: number; datumTijd: string; record: HuilItem }
+  | { soort: "kolven"; id: number; datumTijd: string; record: KolfItem }
 
 export type DagTellers = {
   voedingenAantal: number
