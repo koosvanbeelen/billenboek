@@ -104,6 +104,68 @@ export const notities = pgTable("notities", {
   notitie: text("notitie").notNull(),
 })
 
+// Groei (growth: gewicht/lengte metingen)
+export const groei = pgTable("groei", {
+  id: serial("id").primaryKey(),
+  datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
+  gewichtKg: numeric("gewicht_kg", { precision: 5, scale: 2 }),
+  lengteCm: numeric("lengte_cm", { precision: 5, scale: 1 }),
+  opmerking: text("opmerking"),
+  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  bijgewerktOp: timestamp("bijgewerkt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+// Slapen (sleep sessies)
+export const slapen = pgTable("slapen", {
+  id: serial("id").primaryKey(),
+  start: timestamp("start", { withTimezone: true }).notNull(),
+  einde: timestamp("einde", { withTimezone: true }).notNull(),
+  duurMinuten: integer("duur_minuten").notNull(),
+  locatie: text("locatie"),
+  notitie: text("notitie"),
+  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  bijgewerktOp: timestamp("bijgewerkt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+// Huilen (crying sessies)
+export const huilen = pgTable("huilen", {
+  id: serial("id").primaryKey(),
+  start: timestamp("start", { withTimezone: true }).notNull(),
+  einde: timestamp("einde", { withTimezone: true }).notNull(),
+  duurMinuten: integer("duur_minuten").notNull(),
+  oorzaak: text("oorzaak"),
+  troost: text("troost"),
+  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  bijgewerktOp: timestamp("bijgewerkt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+// Kolven (afkolven van moedermelk)
+export const kolven = pgTable("kolven", {
+  id: serial("id").primaryKey(),
+  datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
+  borst: text("borst").notNull(), // "links" | "rechts" | "beide"
+  hoeveelheidMl: integer("hoeveelheid_ml").notNull(),
+  notitie: text("notitie"),
+  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  bijgewerktOp: timestamp("bijgewerkt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export type Voeding = typeof voedingen.$inferSelect
 export type Luier = typeof luiers.$inferSelect
 export type Temperatuur = typeof temperaturen.$inferSelect
@@ -111,3 +173,7 @@ export type BoertjeSpugen = typeof boertjesSpugen.$inferSelect
 export type Vitamine = typeof vitamines.$inferSelect
 export type Medicatie = typeof medicatie.$inferSelect
 export type Notitie = typeof notities.$inferSelect
+export type Groei = typeof groei.$inferSelect
+export type Slapen = typeof slapen.$inferSelect
+export type Huilen = typeof huilen.$inferSelect
+export type Kolven = typeof kolven.$inferSelect
