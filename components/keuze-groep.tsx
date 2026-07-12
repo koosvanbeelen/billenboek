@@ -31,7 +31,7 @@ export function KeuzeGroep<T extends string>({
           key={o.waarde}
           value={o.waarde}
           variant="outline"
-          className="h-12 flex-1 text-base data-pressed:border-primary data-pressed:bg-primary/10 data-pressed:text-primary"
+          className="h-12 min-w-0 flex-1 truncate px-1.5 text-[13px] leading-tight data-pressed:border-primary data-pressed:bg-primary/10 data-pressed:text-primary sm:px-2.5 sm:text-base"
         >
           {o.label}
         </ToggleGroupItem>

@@ -40,7 +40,10 @@ type Props = {
 export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const router = useRouter()
   const [bewerking, setBewerking] = useState<Bewerking | null>(null)
-  const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
+  const [teVerwijderen, setTeVerwijderen] = useState<{
+    soort: Soort
+    id: number
+  } | null>(null)
   const [samenvattingen, setSamenvattingen] = useState<
     Awaited<ReturnType<typeof getGeschiedenis>> | null
   >(null)
@@ -94,13 +97,21 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
     setBewerking({ soort: item.soort, record: item.record } as Bewerking)
   }
 
+  // Verwijderen start vanuit het bewerkformulier (in RegistratieDialog): het
+  // formulier sluit direct, en de bestaande bevestigingsstap opent daarna.
+  function verwijderVanuitFormulier() {
+    if (!bewerking?.record) return
+    setTeVerwijderen({ soort: bewerking.soort, id: bewerking.record.id })
+    setBewerking(null)
+  }
+
   function bevestigVerwijderen() {
     if (!teVerwijderen) return
-    const item = teVerwijderen
+    const target = teVerwijderen
     setTeVerwijderen(null)
     start(async () => {
       try {
-        await verwijderRegistratie(item.soort, item.id)
+        await verwijderRegistratie(target.soort, target.id)
         toast.success("Verwijderd")
         router.refresh()
       } catch {
@@ -219,7 +230,6 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
                 key={`${item.soort}-${item.id}`}
                 item={item}
                 onBewerk={() => bewerk(item)}
-                onVerwijder={() => setTeVerwijderen(item)}
               />
             ))}
           </div>
@@ -232,6 +242,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           setBewerking(null)
           router.refresh()
         }}
+        onVerwijder={verwijderVanuitFormulier}
       />
 
       <BevestigDialog
