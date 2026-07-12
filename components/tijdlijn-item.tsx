@@ -1,8 +1,6 @@
 "use client"
 
-import { Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { TemperatuurIndicator } from "@/components/temperatuur-indicator"
 import { soortMeta } from "@/lib/soorten"
 import { formatTijd } from "@/lib/datum"
@@ -34,7 +32,7 @@ function samenvatting(item: Item): React.ReactNode {
     case "temperatuur":
       return <TemperatuurIndicator temperatuur={item.record.temperatuur} />
     case "boertje":
-      return item.record.notitie || "Boertje / spugen"
+      return "Boertje / spugen"
     case "vitamine": {
       const r = item.record
       const delen = [r.vitamineD && "Vitamine D", r.vitamineK && "Vitamine K"].filter(
@@ -49,20 +47,36 @@ function samenvatting(item: Item): React.ReactNode {
   }
 }
 
+// De optionele opmerking staat, indien aanwezig, altijd op een eigen regel
+// onder de rest van de kaart (niet afgekapt, mag meerdere regels beslaan).
+function opmerking(item: Item): string | null {
+  switch (item.soort) {
+    case "voeding":
+    case "medicatie":
+    case "boertje":
+      return item.record.notitie || null
+    default:
+      return null
+  }
+}
+
 export function TijdlijnItem({
   item,
   onBewerk,
-  onVerwijder,
 }: {
   item: Item
   onBewerk: () => void
-  onVerwijder: () => void
 }) {
   const meta = soortMeta[item.soort]
   const Icon = meta.icon
+  const notitie = opmerking(item)
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+    <button
+      type="button"
+      onClick={onBewerk}
+      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60"
+    >
       <span
         className={cn(
           "flex size-10 flex-none items-center justify-center rounded-full",
@@ -84,27 +98,13 @@ export function TijdlijnItem({
         <div className="mt-0.5 truncate text-sm text-muted-foreground">
           {samenvatting(item)}
         </div>
+        {notitie && (
+          <div className="mt-0.5 whitespace-pre-line text-sm italic text-muted-foreground/80">
+            {notitie}
+          </div>
+        )}
       </div>
-
-      <div className="flex flex-none items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onBewerk}
-          aria-label="Bewerken"
-        >
-          <Pencil className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onVerwijder}
-          aria-label="Verwijderen"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    </div>
+    </button>
   )
 }
+

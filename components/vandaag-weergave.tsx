@@ -35,7 +35,10 @@ import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
 export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
   const [data, setData] = useState(initieleData)
   const [bewerking, setBewerking] = useState<Bewerking | null>(null)
-  const [teVerwijderen, setTeVerwijderen] = useState<Item | null>(null)
+  const [teVerwijderen, setTeVerwijderen] = useState<{
+    soort: Soort
+    id: number
+  } | null>(null)
   const [volgorde, setVolgorde] = useTijdlijnVolgorde()
   const [bezig, start] = useTransition()
 
@@ -70,13 +73,21 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
     setBewerking({ soort: item.soort, record: item.record } as Bewerking)
   }
 
+  // Verwijderen start vanuit het bewerkformulier (in RegistratieDialog): het
+  // formulier sluit direct, en de bestaande bevestigingsstap opent daarna.
+  function verwijderVanuitFormulier() {
+    if (!bewerking?.record) return
+    setTeVerwijderen({ soort: bewerking.soort, id: bewerking.record.id })
+    setBewerking(null)
+  }
+
   function bevestigVerwijderen() {
     if (!teVerwijderen) return
-    const item = teVerwijderen
+    const target = teVerwijderen
     setTeVerwijderen(null)
     start(async () => {
       try {
-        await verwijderRegistratie(item.soort, item.id)
+        await verwijderRegistratie(target.soort, target.id)
         toast.success("Verwijderd")
         const nieuweData = await getDagGegevens(data.datum)
         setData(nieuweData)
@@ -157,7 +168,6 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
                 key={`${item.soort}-${item.id}`}
                 item={item}
                 onBewerk={() => bewerk(item)}
-                onVerwijder={() => setTeVerwijderen(item)}
               />
             ))}
           </div>
@@ -170,6 +180,7 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
           setBewerking(null)
           ververs(data.datum)
         }}
+        onVerwijder={verwijderVanuitFormulier}
       />
 
       <BevestigDialog
