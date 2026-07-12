@@ -18,7 +18,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Hoofdnavigatie"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur lg:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pb-safe pt-1.5">
         {tabs.map((tab) => {
