@@ -6,18 +6,27 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import {
   boertjesSpugen,
+  groei,
+  huilen,
+  kolven,
   luiers,
   medicatie,
+  slapen,
   temperaturen,
   vitamines,
   voedingen,
 } from "@/lib/db/schema"
-import { dagGrenzen, inputNaarDatum } from "@/lib/datum"
+import { dagGrenzen, duurInMinuten, inputNaarDatum } from "@/lib/datum"
 import type {
   BoertjeItem,
   DagGegevens,
+  GroeiItem,
+  HuilItem,
+  KolfItem,
   LuierItem,
   MedicatieItem,
+  SlaapItem,
+  Soort,
   TemperatuurItem,
   TijdlijnItem,
   VitamineItem,
@@ -25,14 +34,22 @@ import type {
 } from "@/lib/types"
 import {
   boertjeSchema,
+  groeiSchema,
+  huilSchema,
+  kolfSchema,
   luierSchema,
   medicatieSchema,
+  slaapSchema,
   temperatuurSchema,
   vitamineSchema,
   voedingSchema,
   type BoertjeInput,
+  type GroeiInput,
+  type HuilInput,
+  type KolfInput,
   type LuierInput,
   type MedicatieInput,
+  type SlaapInput,
   type TemperatuurInput,
   type VitamineInput,
   type VoedingInput,
@@ -54,14 +71,19 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const binnen = (kolom: AnyPgColumn<{ data: Date }>) =>
     and(gte(kolom, van), lte(kolom, tot))
 
-  const [vRows, lRows, tRows, bRows, viRows, mRows] = await Promise.all([
-    db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
-    db.select().from(luiers).where(binnen(luiers.datumTijd)),
-    db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
-    db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
-    db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
-    db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
-  ])
+  const [vRows, lRows, tRows, bRows, viRows, mRows, gRows, sRows, hRows, kRows] =
+    await Promise.all([
+      db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
+      db.select().from(luiers).where(binnen(luiers.datumTijd)),
+      db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
+      db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
+      db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
+      db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
+      db.select().from(groei).where(binnen(groei.datumTijd)),
+      db.select().from(slapen).where(binnen(slapen.start)),
+      db.select().from(huilen).where(binnen(huilen.start)),
+      db.select().from(kolven).where(binnen(kolven.datumTijd)),
+    ])
 
   const items: TijdlijnItem[] = []
 
@@ -144,6 +166,66 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
         dosering: r.dosering,
         notitie: r.notitie,
       } satisfies MedicatieItem,
+    })
+  }
+  for (const r of gRows) {
+    items.push({
+      soort: "groei",
+      id: r.id,
+      datumTijd: iso(r.datumTijd),
+      record: {
+        id: r.id,
+        datumTijd: iso(r.datumTijd),
+        gewichtKg: r.gewichtKg !== null ? Number(r.gewichtKg) : null,
+        lengteCm: r.lengteCm !== null ? Number(r.lengteCm) : null,
+        opmerking: r.opmerking,
+      } satisfies GroeiItem,
+    })
+  }
+  for (const r of sRows) {
+    items.push({
+      soort: "slapen",
+      id: r.id,
+      datumTijd: iso(r.start),
+      record: {
+        id: r.id,
+        datumTijd: iso(r.start),
+        start: iso(r.start),
+        einde: iso(r.einde),
+        duurMinuten: r.duurMinuten,
+        locatie: r.locatie,
+        notitie: r.notitie,
+      } satisfies SlaapItem,
+    })
+  }
+  for (const r of hRows) {
+    items.push({
+      soort: "huilen",
+      id: r.id,
+      datumTijd: iso(r.start),
+      record: {
+        id: r.id,
+        datumTijd: iso(r.start),
+        start: iso(r.start),
+        einde: iso(r.einde),
+        duurMinuten: r.duurMinuten,
+        oorzaak: r.oorzaak,
+        troost: r.troost,
+      } satisfies HuilItem,
+    })
+  }
+  for (const r of kRows) {
+    items.push({
+      soort: "kolven",
+      id: r.id,
+      datumTijd: iso(r.datumTijd),
+      record: {
+        id: r.id,
+        datumTijd: iso(r.datumTijd),
+        borst: r.borst as KolfItem["borst"],
+        hoeveelheidMl: r.hoeveelheidMl,
+        notitie: r.notitie,
+      } satisfies KolfItem,
     })
   }
 
@@ -358,18 +440,149 @@ export async function verwijderMedicatie(id: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Groei
+// ---------------------------------------------------------------------------
+export async function voegGroeiToe(input: GroeiInput) {
+  const d = groeiSchema.parse(input)
+  await db.insert(groei).values({
+    datumTijd: inputNaarDatum(d.datumTijd),
+    gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
+    lengteCm: d.lengteCm !== undefined ? d.lengteCm.toFixed(1) : null,
+    opmerking: d.opmerking || null,
+  })
+  herlaad()
+}
+
+export async function werkGroeiBij(id: number, input: GroeiInput) {
+  const d = groeiSchema.parse(input)
+  await db
+    .update(groei)
+    .set({
+      datumTijd: inputNaarDatum(d.datumTijd),
+      gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
+      lengteCm: d.lengteCm !== undefined ? d.lengteCm.toFixed(1) : null,
+      opmerking: d.opmerking || null,
+      bijgewerktOp: new Date(),
+    })
+    .where(eq(groei.id, id))
+  herlaad()
+}
+
+export async function verwijderGroei(id: number) {
+  await db.delete(groei).where(eq(groei.id, id))
+  herlaad()
+}
+
+// ---------------------------------------------------------------------------
+// Slapen
+// ---------------------------------------------------------------------------
+export async function voegSlaapToe(input: SlaapInput) {
+  const d = slaapSchema.parse(input)
+  await db.insert(slapen).values({
+    start: inputNaarDatum(d.start),
+    einde: inputNaarDatum(d.einde),
+    duurMinuten: duurInMinuten(d.start, d.einde),
+    locatie: d.locatie || null,
+    notitie: d.notitie || null,
+  })
+  herlaad()
+}
+
+export async function werkSlaapBij(id: number, input: SlaapInput) {
+  const d = slaapSchema.parse(input)
+  await db
+    .update(slapen)
+    .set({
+      start: inputNaarDatum(d.start),
+      einde: inputNaarDatum(d.einde),
+      duurMinuten: duurInMinuten(d.start, d.einde),
+      locatie: d.locatie || null,
+      notitie: d.notitie || null,
+      bijgewerktOp: new Date(),
+    })
+    .where(eq(slapen.id, id))
+  herlaad()
+}
+
+export async function verwijderSlaap(id: number) {
+  await db.delete(slapen).where(eq(slapen.id, id))
+  herlaad()
+}
+
+// ---------------------------------------------------------------------------
+// Huilen
+// ---------------------------------------------------------------------------
+export async function voegHuilToe(input: HuilInput) {
+  const d = huilSchema.parse(input)
+  await db.insert(huilen).values({
+    start: inputNaarDatum(d.start),
+    einde: inputNaarDatum(d.einde),
+    duurMinuten: duurInMinuten(d.start, d.einde),
+    oorzaak: d.oorzaak || null,
+    troost: d.troost || null,
+  })
+  herlaad()
+}
+
+export async function werkHuilBij(id: number, input: HuilInput) {
+  const d = huilSchema.parse(input)
+  await db
+    .update(huilen)
+    .set({
+      start: inputNaarDatum(d.start),
+      einde: inputNaarDatum(d.einde),
+      duurMinuten: duurInMinuten(d.start, d.einde),
+      oorzaak: d.oorzaak || null,
+      troost: d.troost || null,
+      bijgewerktOp: new Date(),
+    })
+    .where(eq(huilen.id, id))
+  herlaad()
+}
+
+export async function verwijderHuil(id: number) {
+  await db.delete(huilen).where(eq(huilen.id, id))
+  herlaad()
+}
+
+// ---------------------------------------------------------------------------
+// Kolven
+// ---------------------------------------------------------------------------
+export async function voegKolfToe(input: KolfInput) {
+  const d = kolfSchema.parse(input)
+  await db.insert(kolven).values({
+    datumTijd: inputNaarDatum(d.datumTijd),
+    borst: d.borst,
+    hoeveelheidMl: d.hoeveelheidMl,
+    notitie: d.notitie || null,
+  })
+  herlaad()
+}
+
+export async function werkKolfBij(id: number, input: KolfInput) {
+  const d = kolfSchema.parse(input)
+  await db
+    .update(kolven)
+    .set({
+      datumTijd: inputNaarDatum(d.datumTijd),
+      borst: d.borst,
+      hoeveelheidMl: d.hoeveelheidMl,
+      notitie: d.notitie || null,
+      bijgewerktOp: new Date(),
+    })
+    .where(eq(kolven.id, id))
+  herlaad()
+}
+
+export async function verwijderKolf(id: number) {
+  await db.delete(kolven).where(eq(kolven.id, id))
+  herlaad()
+}
+
+// ---------------------------------------------------------------------------
 // Algemene verwijderfunctie op basis van soort
 // ---------------------------------------------------------------------------
-export async function verwijderRegistratie(
-  soort:
-    | "voeding"
-    | "luier"
-    | "temperatuur"
-    | "boertje"
-    | "vitamine"
-    | "medicatie",
-  id: number,
-) {
+export async function verwijderRegistratie(soort: Soort, id: number) {
   switch (soort) {
     case "voeding":
       await db.delete(voedingen).where(eq(voedingen.id, id))
@@ -388,6 +601,18 @@ export async function verwijderRegistratie(
       break
     case "medicatie":
       await db.delete(medicatie).where(eq(medicatie.id, id))
+      break
+    case "groei":
+      await db.delete(groei).where(eq(groei.id, id))
+      break
+    case "slapen":
+      await db.delete(slapen).where(eq(slapen.id, id))
+      break
+    case "huilen":
+      await db.delete(huilen).where(eq(huilen.id, id))
+      break
+    case "kolven":
+      await db.delete(kolven).where(eq(kolven.id, id))
       break
   }
   herlaad()
