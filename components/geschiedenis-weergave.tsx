@@ -2,17 +2,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Milk,
-  Baby,
-  Thermometer,
-  Wind,
-  Sparkles,
-  Pill,
-  Calendar,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ActieKnop } from "@/components/actie-knop"
@@ -26,6 +16,8 @@ import {
 } from "@/components/registratie-dialog"
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
+import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
+import { soortMeta } from "@/lib/soorten"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
 import { verschuifDatum, isVandaag, vandaagDatum, formatDatumLang } from "@/lib/datum"
@@ -49,6 +41,12 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   >(null)
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
+  const [zichtbaar] = useZichtbareFormulieren()
+
+  const zichtbareSoorten = useMemo(
+    () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
+    [zichtbaar],
+  )
 
   // Respecteer dezelfde tijdlijn-voorkeur als "Vandaag" (in te stellen via
   // Instellingen).
@@ -195,18 +193,21 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
       <DagTellersRij tellers={data.tellers} />
 
       {/* Actieknoppen voor deze dag */}
-      <div className="grid grid-cols-3 gap-2">
-        <ActieKnop label="Voeding" icon={Milk} onClick={() => nieuw("voeding")} />
-        <ActieKnop label="Luier" icon={Baby} onClick={() => nieuw("luier")} />
-        <ActieKnop
-          label="Temperatuur"
-          icon={Thermometer}
-          onClick={() => nieuw("temperatuur")}
-        />
-        <ActieKnop label="Boertje" icon={Wind} onClick={() => nieuw("boertje")} />
-        <ActieKnop label="Vitamine" icon={Sparkles} onClick={() => nieuw("vitamine")} />
-        <ActieKnop label="Medicatie" icon={Pill} onClick={() => nieuw("medicatie")} />
-      </div>
+      {zichtbareSoorten.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {zichtbareSoorten.map((soort) => {
+            const meta = soortMeta[soort]
+            return (
+              <ActieKnop
+                key={soort}
+                label={meta.label}
+                icon={meta.icon}
+                onClick={() => nieuw(soort)}
+              />
+            )
+          })}
+        </div>
+      )}
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">
