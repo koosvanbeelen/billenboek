@@ -57,7 +57,7 @@ export function RegistratieDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       {bewerking && (
         <DialogContent className="top-auto bottom-0 left-1/2 max-h-[90dvh] w-full max-w-md translate-y-0 overflow-y-auto rounded-b-none rounded-t-3xl pb-safe sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl data-open:sm:zoom-in-95">
-          <DialogHeader className="flex-row items-start justify-between gap-2 text-left">
+          <DialogHeader className="flex-row items-start justify-between gap-2 pr-8 text-left">
             <div className="min-w-0">
               <DialogTitle className="text-lg">
                 {bewerking.record ? "Bewerk " : "Nieuwe "}
