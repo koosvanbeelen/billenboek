@@ -10,6 +10,7 @@ import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { TijdlijnSorteerKnop } from "@/components/tijdlijn-sorteer-knop"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
+import { useActieveTimer } from "@/lib/actieve-timer"
 import { soortMeta } from "@/lib/soorten"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
@@ -33,6 +34,8 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
   const [volgorde, setVolgorde] = useTijdlijnVolgorde()
   const [zichtbaar] = useZichtbareFormulieren()
   const [bezig, start] = useTransition()
+  const slaapTimer = useActieveTimer("slapen")
+  const huilTimer = useActieveTimer("huilen")
 
   const zichtbareSoorten = useMemo(
     () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
@@ -64,6 +67,21 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
 
   function nieuw(soort: Soort) {
     setBewerking({ soort } as Bewerking)
+  }
+
+  // Eerste tik start de live timer (knop kleurt lichtgroen en telt mee).
+  // Tweede tik bepaalt de eindtijd en opent het bewerkformulier, voorgevuld
+  // met start en einde. Alleen zinvol op de dag van vandaag; op een andere
+  // dag opent de knop gewoon direct het formulier.
+  function tikTimer(soort: "slapen" | "huilen") {
+    const timer = soort === "slapen" ? slaapTimer : huilTimer
+    if (!timer.loopt) {
+      timer.beginTimer()
+      return
+    }
+    const voorinvulling = timer.eindigTimer()
+    if (!voorinvulling) return
+    setBewerking({ soort, voorinvulling } as Bewerking)
   }
 
   function bewerk(item: Item) {
@@ -137,6 +155,21 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
         <div className="grid grid-cols-3 gap-2">
           {zichtbareSoorten.map((soort) => {
             const meta = soortMeta[soort]
+            const metTimer =
+              isVandaag(data.datum) && (soort === "slapen" || soort === "huilen")
+            if (metTimer) {
+              const timer = soort === "slapen" ? slaapTimer : huilTimer
+              return (
+                <ActieKnop
+                  key={soort}
+                  label={meta.label}
+                  icon={meta.icon}
+                  actief={timer.loopt}
+                  sinds={timer.startTijd}
+                  onClick={() => tikTimer(soort)}
+                />
+              )
+            }
             return (
               <ActieKnop
                 key={soort}

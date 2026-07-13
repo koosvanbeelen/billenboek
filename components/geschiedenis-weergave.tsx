@@ -17,6 +17,7 @@ import {
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
+import { useActieveTimer } from "@/lib/actieve-timer"
 import { soortMeta } from "@/lib/soorten"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
@@ -42,6 +43,8 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
   const [zichtbaar] = useZichtbareFormulieren()
+  const slaapTimer = useActieveTimer("slapen")
+  const huilTimer = useActieveTimer("huilen")
 
   const zichtbareSoorten = useMemo(
     () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
@@ -89,6 +92,19 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
   function nieuw(soort: Soort) {
     setBewerking({ soort } as Bewerking)
+  }
+
+  // Zelfde live start/stop-timer als op "Vandaag" — alleen zinvol als deze
+  // dag ook echt vandaag is.
+  function tikTimer(soort: "slapen" | "huilen") {
+    const timer = soort === "slapen" ? slaapTimer : huilTimer
+    if (!timer.loopt) {
+      timer.beginTimer()
+      return
+    }
+    const voorinvulling = timer.eindigTimer()
+    if (!voorinvulling) return
+    setBewerking({ soort, voorinvulling } as Bewerking)
   }
 
   function bewerk(item: Item) {
@@ -197,6 +213,21 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
         <div className="grid grid-cols-3 gap-2">
           {zichtbareSoorten.map((soort) => {
             const meta = soortMeta[soort]
+            const metTimer =
+              isVandaag(dag) && (soort === "slapen" || soort === "huilen")
+            if (metTimer) {
+              const timer = soort === "slapen" ? slaapTimer : huilTimer
+              return (
+                <ActieKnop
+                  key={soort}
+                  label={meta.label}
+                  icon={meta.icon}
+                  actief={timer.loopt}
+                  sinds={timer.startTijd}
+                  onClick={() => tikTimer(soort)}
+                />
+              )
+            }
             return (
               <ActieKnop
                 key={soort}
