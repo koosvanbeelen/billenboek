@@ -54,8 +54,17 @@ export type Bewerking =
   | { soort: "vitamine"; record?: VitamineItem }
   | { soort: "medicatie"; record?: MedicatieItem }
   | { soort: "groei"; record?: GroeiItem }
-  | { soort: "slapen"; record?: SlaapItem }
-  | { soort: "huilen"; record?: HuilItem }
+  | {
+      soort: "slapen"
+      record?: SlaapItem
+      // Voorgevuld vanuit de live start/stop-timer op de actieknop.
+      voorinvulling?: { start: string; einde: string }
+    }
+  | {
+      soort: "huilen"
+      record?: HuilItem
+      voorinvulling?: { start: string; einde: string }
+    }
   | { soort: "kolven"; record?: KolfItem }
 
 export function RegistratieDialog({
@@ -119,10 +128,18 @@ export function RegistratieDialog({
             <GroeiFormulier bestaand={bewerking.record} onKlaar={onClose} />
           )}
           {bewerking.soort === "slapen" && (
-            <SlaapFormulier bestaand={bewerking.record} onKlaar={onClose} />
+            <SlaapFormulier
+              bestaand={bewerking.record}
+              voorinvulling={bewerking.voorinvulling}
+              onKlaar={onClose}
+            />
           )}
           {bewerking.soort === "huilen" && (
-            <HuilFormulier bestaand={bewerking.record} onKlaar={onClose} />
+            <HuilFormulier
+              bestaand={bewerking.record}
+              voorinvulling={bewerking.voorinvulling}
+              onKlaar={onClose}
+            />
           )}
           {bewerking.soort === "kolven" && (
             <KolfFormulier bestaand={bewerking.record} onKlaar={onClose} />
