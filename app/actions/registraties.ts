@@ -5,20 +5,19 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import {
-  boertjesSpugen,
   groei,
   huilen,
   kolven,
   luiers,
   medicatie,
   slapen,
+  spugen,
   temperaturen,
   vitamines,
   voedingen,
 } from "@/lib/db/schema"
 import { dagGrenzen, duurInMinuten, inputNaarDatum } from "@/lib/datum"
 import type {
-  BoertjeItem,
   DagGegevens,
   GroeiItem,
   HuilItem,
@@ -27,29 +26,30 @@ import type {
   MedicatieItem,
   SlaapItem,
   Soort,
+  SpugenItem,
   TemperatuurItem,
   TijdlijnItem,
   VitamineItem,
   VoedingItem,
 } from "@/lib/types"
 import {
-  boertjeSchema,
   groeiSchema,
   huilSchema,
   kolfSchema,
   luierSchema,
   medicatieSchema,
   slaapSchema,
+  spugenSchema,
   temperatuurSchema,
   vitamineSchema,
   voedingSchema,
-  type BoertjeInput,
   type GroeiInput,
   type HuilInput,
   type KolfInput,
   type LuierInput,
   type MedicatieInput,
   type SlaapInput,
+  type SpugenInput,
   type TemperatuurInput,
   type VitamineInput,
   type VoedingInput,
@@ -76,7 +76,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
       db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
       db.select().from(luiers).where(binnen(luiers.datumTijd)),
       db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
-      db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
+      db.select().from(spugen).where(binnen(spugen.datumTijd)),
       db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
       db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
       db.select().from(groei).where(binnen(groei.datumTijd)),
@@ -131,14 +131,14 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   }
   for (const r of bRows) {
     items.push({
-      soort: "boertje",
+      soort: "spugen",
       id: r.id,
       datumTijd: iso(r.datumTijd),
       record: {
         id: r.id,
         datumTijd: iso(r.datumTijd),
         notitie: r.notitie,
-      } satisfies BoertjeItem,
+      } satisfies SpugenItem,
     })
   }
   for (const r of viRows) {
@@ -344,32 +344,32 @@ export async function verwijderTemperatuur(id: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Boertje / Spugen
+// Spugen
 // ---------------------------------------------------------------------------
-export async function voegBoertjeToe(input: BoertjeInput) {
-  const d = boertjeSchema.parse(input)
-  await db.insert(boertjesSpugen).values({
+export async function voegSpugenToe(input: SpugenInput) {
+  const d = spugenSchema.parse(input)
+  await db.insert(spugen).values({
     datumTijd: inputNaarDatum(d.datumTijd),
     notitie: d.notitie || null,
   })
   herlaad()
 }
 
-export async function werkBoertjeBij(id: number, input: BoertjeInput) {
-  const d = boertjeSchema.parse(input)
+export async function werkSpugenBij(id: number, input: SpugenInput) {
+  const d = spugenSchema.parse(input)
   await db
-    .update(boertjesSpugen)
+    .update(spugen)
     .set({
       datumTijd: inputNaarDatum(d.datumTijd),
       notitie: d.notitie || null,
       bijgewerktOp: new Date(),
     })
-    .where(eq(boertjesSpugen.id, id))
+    .where(eq(spugen.id, id))
   herlaad()
 }
 
-export async function verwijderBoertje(id: number) {
-  await db.delete(boertjesSpugen).where(eq(boertjesSpugen.id, id))
+export async function verwijderSpugen(id: number) {
+  await db.delete(spugen).where(eq(spugen.id, id))
   herlaad()
 }
 
@@ -593,8 +593,8 @@ export async function verwijderRegistratie(soort: Soort, id: number) {
     case "temperatuur":
       await db.delete(temperaturen).where(eq(temperaturen.id, id))
       break
-    case "boertje":
-      await db.delete(boertjesSpugen).where(eq(boertjesSpugen.id, id))
+    case "spugen":
+      await db.delete(spugen).where(eq(spugen.id, id))
       break
     case "vitamine":
       await db.delete(vitamines).where(eq(vitamines.id, id))
