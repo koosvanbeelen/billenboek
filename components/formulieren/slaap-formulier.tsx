@@ -1,25 +1,44 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { Timer } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
 import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 import { DatumTijdKiezer } from "@/components/datum-tijd-kiezer"
 import { voegSlaapToe, werkSlaapBij } from "@/app/actions/registraties"
 import { nuInputWaarde, datumNaarInput, duurInMinuten, formatDuur } from "@/lib/datum"
 import type { SlaapItem } from "@/lib/types"
 
-type Props = { bestaand?: SlaapItem; onKlaar: () => void }
+type Props = {
+  bestaand?: SlaapItem
+  voorinvulling?: { start: string; einde: string }
+  onKlaar: () => void
+  // Start de live timer en sluit het formulier, zodat de rest van de app
+  // ondertussen gewoon gebruikt kan worden. Alleen aanwezig bij een geheel
+  // nieuwe, lege registratie (geen bestaand item, geen voorinvulling).
+  onStartTimer?: () => void
+}
 
-export function SlaapFormulier({ bestaand, onKlaar }: Props) {
+export function SlaapFormulier({
+  bestaand,
+  voorinvulling,
+  onKlaar,
+  onStartTimer,
+}: Props) {
   const [bezig, setBezig] = useState(false)
   const [start, setStart] = useState(
-    bestaand ? datumNaarInput(new Date(bestaand.start)) : nuInputWaarde(),
+    bestaand
+      ? datumNaarInput(new Date(bestaand.start))
+      : voorinvulling?.start ?? nuInputWaarde(),
   )
   const [einde, setEinde] = useState(
-    bestaand ? datumNaarInput(new Date(bestaand.einde)) : nuInputWaarde(),
+    bestaand
+      ? datumNaarInput(new Date(bestaand.einde))
+      : voorinvulling?.einde ?? nuInputWaarde(),
   )
   const [locatie, setLocatie] = useState(bestaand?.locatie ?? "")
   const [notitie, setNotitie] = useState(bestaand?.notitie ?? "")
@@ -27,6 +46,7 @@ export function SlaapFormulier({ bestaand, onKlaar }: Props) {
 
   const duur = useMemo(() => duurInMinuten(start, einde), [start, einde])
   const duurGeldig = new Date(`${einde}:00.000Z`) > new Date(`${start}:00.000Z`)
+  const toonTimerKnop = Boolean(onStartTimer) && !bestaand && !voorinvulling
 
   async function verstuur() {
     if (!duurGeldig) {
@@ -55,6 +75,26 @@ export function SlaapFormulier({ bestaand, onKlaar }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
+      {toonTimerKnop && (
+        <>
+          <Button
+            type="button"
+            onClick={onStartTimer}
+            size="lg"
+            variant="outline"
+            className="h-12 w-full border-temp-good/40 text-base text-temp-good hover:bg-temp-good/10 hover:text-temp-good"
+          >
+            <Timer className="size-5" data-icon="inline-start" />
+            Start timer
+          </Button>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">of vul handmatig in</span>
+            <Separator className="flex-1" />
+          </div>
+        </>
+      )}
+
       <Field>
         <FieldLabel>Start</FieldLabel>
         <DatumTijdKiezer waarde={start} onChange={setStart} />
