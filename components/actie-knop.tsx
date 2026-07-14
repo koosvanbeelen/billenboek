@@ -16,45 +16,56 @@ function formatVerstreken(seconden: number): string {
 
 // Grote actieknop met icoon en label. Minimaal 48x48 tikvlak.
 //
-// Optioneel ondersteunt de knop een lopende timer (voor Slapen/Huilen):
-// zolang `actief` waar is, kleurt de knop lichtgroen en toont hij de
-// verstreken tijd sinds `sinds` in plaats van het label.
+// Optioneel ondersteunt de knop een timerstatus (voor Slapen/Huilen):
+// - "lopend": de timer loopt, knop kleurt lichtgroen en toont de verstreken
+//   tijd sinds `sinds` in plaats van het label.
+// - "wacht": de timer is gestopt maar nog niet opgeslagen, knop kleurt
+//   amber en toont de vaste duur (`duurLabel`) in plaats van het label.
 export function ActieKnop({
   label,
   icon: Icon,
   onClick,
   className,
-  actief = false,
+  status,
   sinds = null,
+  duurLabel,
 }: {
   label: string
   icon: LucideIcon
   onClick: () => void
   className?: string
-  actief?: boolean
+  status?: "lopend" | "wacht"
   sinds?: string | null
+  duurLabel?: string
 }) {
   const [verstreken, setVerstreken] = useState(0)
 
   useEffect(() => {
-    if (!actief || !sinds) return
+    if (status !== "lopend" || !sinds) return
     setVerstreken(verstrekenSeconden(sinds))
     const interval = setInterval(() => {
       setVerstreken(verstrekenSeconden(sinds))
     }, 1000)
     return () => clearInterval(interval)
-  }, [actief, sinds])
+  }, [status, sinds])
+
+  const tekst =
+    status === "lopend"
+      ? formatVerstreken(verstreken)
+      : status === "wacht"
+        ? (duurLabel ?? "Afronden")
+        : label
 
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={actief}
+      aria-pressed={status !== undefined}
       className={cn(
         "flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border p-4 text-center shadow-sm transition-colors",
-        actief
-          ? "border-temp-good/40 bg-temp-good/15"
-          : "border-border bg-card hover:bg-accent",
+        status === "lopend" && "border-temp-good/40 bg-temp-good/15",
+        status === "wacht" && "border-amber-400/50 bg-amber-400/15",
+        !status && "border-border bg-card hover:bg-accent",
         "active:translate-y-px",
         "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
@@ -63,7 +74,9 @@ export function ActieKnop({
       <span
         className={cn(
           "flex size-12 items-center justify-center rounded-full",
-          actief ? "bg-temp-good/20 text-temp-good" : "bg-primary/10 text-primary",
+          status === "lopend" && "bg-temp-good/20 text-temp-good",
+          status === "wacht" && "bg-amber-400/20 text-amber-700 dark:text-amber-400",
+          !status && "bg-primary/10 text-primary",
         )}
       >
         <Icon className="size-6" aria-hidden />
@@ -71,10 +84,12 @@ export function ActieKnop({
       <span
         className={cn(
           "text-sm font-medium tabular-nums",
-          actief ? "text-temp-good" : "text-card-foreground",
+          status === "lopend" && "text-temp-good",
+          status === "wacht" && "text-amber-700 dark:text-amber-400",
+          !status && "text-card-foreground",
         )}
       >
-        {actief ? formatVerstreken(verstreken) : label}
+        {tekst}
       </span>
     </button>
   )
