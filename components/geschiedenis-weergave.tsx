@@ -21,7 +21,7 @@ import { useActieveTimer } from "@/lib/actieve-timer"
 import { soortMeta } from "@/lib/soorten"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
-import { verschuifDatum, isVandaag, vandaagDatum, formatDatumLang } from "@/lib/datum"
+import { verschuifDatum, isVandaag, vandaagDatum, formatDatumLang, duurInMinuten, formatDuur } from "@/lib/datum"
 import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
 
 type Props = {
@@ -95,16 +95,27 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   }
 
   // Zelfde live start/stop-timer als op "Vandaag" — alleen zinvol als deze
-  // dag ook echt vandaag is.
+  // dag ook echt vandaag is. Tikken opent altijd het formulier; "terugkeren"
+  // naar het formulier terwijl de timer loopt stopt 'm en berekent de
+  // eindtijd (start + verstreken tijd).
   function tikTimer(soort: "slapen" | "huilen") {
     const timer = soort === "slapen" ? slaapTimer : huilTimer
-    if (!timer.loopt) {
-      timer.beginTimer()
+    if (timer.status === "lopend") {
+      const voorinvulling = timer.stopTimer()
+      if (voorinvulling) {
+        setBewerking({ soort, voorinvulling, wisTimer: timer.wisTimer } as Bewerking)
+      }
       return
     }
-    const voorinvulling = timer.eindigTimer()
-    if (!voorinvulling) return
-    setBewerking({ soort, voorinvulling } as Bewerking)
+    if (timer.status === "wacht" && timer.entry?.einde) {
+      setBewerking({
+        soort,
+        voorinvulling: { start: timer.entry.start, einde: timer.entry.einde },
+        wisTimer: timer.wisTimer,
+      } as Bewerking)
+      return
+    }
+    setBewerking({ soort, onStartTimer: timer.beginTimer } as Bewerking)
   }
 
   function bewerk(item: Item) {
@@ -217,13 +228,19 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
               isVandaag(dag) && (soort === "slapen" || soort === "huilen")
             if (metTimer) {
               const timer = soort === "slapen" ? slaapTimer : huilTimer
+              const status = timer.status === "uit" ? undefined : timer.status
+              const duurLabel =
+                timer.status === "wacht" && timer.entry?.einde
+                  ? formatDuur(duurInMinuten(timer.entry.start, timer.entry.einde))
+                  : undefined
               return (
                 <ActieKnop
                   key={soort}
                   label={meta.label}
                   icon={meta.icon}
-                  actief={timer.loopt}
+                  status={status}
                   sinds={timer.startTijd}
+                  duurLabel={duurLabel}
                   onClick={() => tikTimer(soort)}
                 />
               )

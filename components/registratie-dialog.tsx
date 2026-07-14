@@ -57,15 +57,25 @@ export type Bewerking =
   | {
       soort: "slapen"
       record?: SlaapItem
-      // Voorgevuld vanuit de live start/stop-timer op de actieknop.
+      // Voorgevuld vanuit een gestopte (nog niet opgeslagen) live timer.
       voorinvulling?: { start: string; einde: string }
+      // Start de live timer; alleen gezet bij een geheel lege, nieuwe registratie.
+      onStartTimer?: () => void
+      // Wist de bijbehorende timermeting; gezet zodra er een voorinvulling is.
+      wisTimer?: () => void
     }
   | {
       soort: "huilen"
       record?: HuilItem
       voorinvulling?: { start: string; einde: string }
+      onStartTimer?: () => void
+      wisTimer?: () => void
     }
   | { soort: "kolven"; record?: KolfItem }
+
+function heeftTimerMeting(b: Bewerking): boolean {
+  return (b.soort === "slapen" || b.soort === "huilen") && Boolean(b.wisTimer)
+}
 
 export function RegistratieDialog({
   bewerking,
@@ -92,13 +102,22 @@ export function RegistratieDialog({
                 Formulier om een {titels[bewerking.soort].toLowerCase()} registratie op te slaan
               </DialogDescription>
             </div>
-            {bewerking.record && (
+            {(bewerking.record || heeftTimerMeting(bewerking)) && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={onVerwijder}
-                aria-label="Verwijderen"
+                onClick={() => {
+                  if (bewerking.record) {
+                    onVerwijder()
+                    return
+                  }
+                  if (bewerking.soort === "slapen" || bewerking.soort === "huilen") {
+                    bewerking.wisTimer?.()
+                  }
+                  onClose()
+                }}
+                aria-label={bewerking.record ? "Verwijderen" : "Meting verwijderen"}
                 className="flex-none text-destructive hover:text-destructive"
               >
                 <Trash2 className="size-4" />
@@ -131,14 +150,36 @@ export function RegistratieDialog({
             <SlaapFormulier
               bestaand={bewerking.record}
               voorinvulling={bewerking.voorinvulling}
-              onKlaar={onClose}
+              onKlaar={() => {
+                bewerking.wisTimer?.()
+                onClose()
+              }}
+              onStartTimer={
+                bewerking.onStartTimer
+                  ? () => {
+                      bewerking.onStartTimer?.()
+                      onClose()
+                    }
+                  : undefined
+              }
             />
           )}
           {bewerking.soort === "huilen" && (
             <HuilFormulier
               bestaand={bewerking.record}
               voorinvulling={bewerking.voorinvulling}
-              onKlaar={onClose}
+              onKlaar={() => {
+                bewerking.wisTimer?.()
+                onClose()
+              }}
+              onStartTimer={
+                bewerking.onStartTimer
+                  ? () => {
+                      bewerking.onStartTimer?.()
+                      onClose()
+                    }
+                  : undefined
+              }
             />
           )}
           {bewerking.soort === "kolven" && (
