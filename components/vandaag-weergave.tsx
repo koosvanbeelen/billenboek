@@ -20,6 +20,8 @@ import {
   verschuifDatum,
   isVandaag,
   vandaagDatum,
+  duurInMinuten,
+  formatDuur,
 } from "@/lib/datum"
 import { getDagGegevens, verwijderRegistratie } from "@/app/actions/registraties"
 import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
@@ -69,19 +71,32 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
     setBewerking({ soort } as Bewerking)
   }
 
-  // Eerste tik start de live timer (knop kleurt lichtgroen en telt mee).
-  // Tweede tik bepaalt de eindtijd en opent het bewerkformulier, voorgevuld
-  // met start en einde. Alleen zinvol op de dag van vandaag; op een andere
-  // dag opent de knop gewoon direct het formulier.
+  // Tikken op Slapen/Huilen opent altijd het formulier:
+  // - geen timer bezig: leeg formulier met een "Start timer"-knop erin.
+  //   Die knop start de timer en sluit het formulier weer.
+  // - timer loopt: het "terugkeren naar het formulier" stopt de timer en
+  //   berekent de eindtijd (start + verstreken tijd), en opent het
+  //   formulier voorgevuld.
+  // - timer is al gestopt maar nog niet opgeslagen: opnieuw hetzelfde
+  //   (vaste) formulier openen, tijden blijven ongewijzigd.
   function tikTimer(soort: "slapen" | "huilen") {
     const timer = soort === "slapen" ? slaapTimer : huilTimer
-    if (!timer.loopt) {
-      timer.beginTimer()
+    if (timer.status === "lopend") {
+      const voorinvulling = timer.stopTimer()
+      if (voorinvulling) {
+        setBewerking({ soort, voorinvulling, wisTimer: timer.wisTimer } as Bewerking)
+      }
       return
     }
-    const voorinvulling = timer.eindigTimer()
-    if (!voorinvulling) return
-    setBewerking({ soort, voorinvulling } as Bewerking)
+    if (timer.status === "wacht" && timer.entry?.einde) {
+      setBewerking({
+        soort,
+        voorinvulling: { start: timer.entry.start, einde: timer.entry.einde },
+        wisTimer: timer.wisTimer,
+      } as Bewerking)
+      return
+    }
+    setBewerking({ soort, onStartTimer: timer.beginTimer } as Bewerking)
   }
 
   function bewerk(item: Item) {
@@ -159,13 +174,19 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
               isVandaag(data.datum) && (soort === "slapen" || soort === "huilen")
             if (metTimer) {
               const timer = soort === "slapen" ? slaapTimer : huilTimer
+              const status = timer.status === "uit" ? undefined : timer.status
+              const duurLabel =
+                timer.status === "wacht" && timer.entry?.einde
+                  ? formatDuur(duurInMinuten(timer.entry.start, timer.entry.einde))
+                  : undefined
               return (
                 <ActieKnop
                   key={soort}
                   label={meta.label}
                   icon={meta.icon}
-                  actief={timer.loopt}
+                  status={status}
                   sinds={timer.startTijd}
+                  duurLabel={duurLabel}
                   onClick={() => tikTimer(soort)}
                 />
               )
