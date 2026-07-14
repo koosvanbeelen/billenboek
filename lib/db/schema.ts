@@ -53,8 +53,8 @@ export const temperaturen = pgTable("temperaturen", {
     .defaultNow(),
 })
 
-// Boertjes / Spugen (burps / spit-up)
-export const boertjesSpugen = pgTable("boertjes_spugen", {
+// Spugen (spit-up)
+export const spugen = pgTable("spugen", {
   id: serial("id").primaryKey(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   notitie: text("notitie"),
@@ -169,7 +169,7 @@ export const kolven = pgTable("kolven", {
 export type Voeding = typeof voedingen.$inferSelect
 export type Luier = typeof luiers.$inferSelect
 export type Temperatuur = typeof temperaturen.$inferSelect
-export type BoertjeSpugen = typeof boertjesSpugen.$inferSelect
+export type Spugen = typeof spugen.$inferSelect
 export type Vitamine = typeof vitamines.$inferSelect
 export type Medicatie = typeof medicatie.$inferSelect
 export type Notitie = typeof notities.$inferSelect
