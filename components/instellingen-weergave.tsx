@@ -30,6 +30,7 @@ import {
   useZichtbareFormulieren,
   resetZichtbareFormulieren,
 } from "@/lib/formulier-voorkeur"
+import { resetKindKeuze } from "@/lib/kind-voorkeur"
 import { soortMeta } from "@/lib/soorten"
 import type { Soort } from "@/lib/types"
 
@@ -95,6 +96,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
     setTheme("light")
     resetTijdlijnVolgorde()
     resetZichtbareFormulieren()
+    resetKindKeuze()
     setDbStatus(null)
     setResetOpen(false)
     toast.success("Voorkeuren gereset")
@@ -327,7 +329,7 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
         open={resetOpen}
         onOpenChange={setResetOpen}
         titel="Voorkeuren resetten?"
-        beschrijving="Donkere modus wordt uitgezet, de tijdlijnvolgorde gaat terug naar oudste eerst en alle formulieren worden weer actief."
+        beschrijving="Donkere modus wordt uitgezet, de tijdlijnvolgorde gaat terug naar oudste eerst, alle formulieren worden weer actief en de kinderenlijst gaat terug naar één kind."
         onBevestig={resetVoorkeuren}
       />
     </div>

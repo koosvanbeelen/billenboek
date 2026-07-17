@@ -2,7 +2,7 @@ export type Soort =
   | "voeding"
   | "luier"
   | "temperatuur"
-  | "boertje"
+  | "spugen"
   | "vitamine"
   | "medicatie"
   | "groei"
@@ -34,7 +34,7 @@ export type TemperatuurItem = {
   temperatuur: number
 }
 
-export type BoertjeItem = {
+export type SpugenItem = {
   id: number
   datumTijd: string
   notitie: string | null
@@ -100,7 +100,7 @@ export type TijdlijnItem =
       datumTijd: string
       record: TemperatuurItem
     }
-  | { soort: "boertje"; id: number; datumTijd: string; record: BoertjeItem }
+  | { soort: "spugen"; id: number; datumTijd: string; record: SpugenItem }
   | { soort: "vitamine"; id: number; datumTijd: string; record: VitamineItem }
   | {
       soort: "medicatie"

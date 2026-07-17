@@ -31,8 +31,8 @@ function samenvatting(item: Item): React.ReactNode {
     }
     case "temperatuur":
       return <TemperatuurIndicator temperatuur={item.record.temperatuur} />
-    case "boertje":
-      return "Boertje / spugen"
+    case "spugen":
+      return null
     case "vitamine": {
       const r = item.record
       const delen = [r.vitamineD && "Vitamine D", r.vitamineK && "Vitamine K"].filter(
@@ -74,7 +74,7 @@ function opmerking(item: Item): string | null {
   switch (item.soort) {
     case "voeding":
     case "medicatie":
-    case "boertje":
+    case "spugen":
     case "slapen":
       return item.record.notitie || null
     case "groei":
@@ -97,6 +97,7 @@ export function TijdlijnItem({
 }) {
   const meta = soortMeta[item.soort]
   const Icon = meta.icon
+  const inhoud = samenvatting(item)
   const notitie = opmerking(item)
 
   return (
@@ -123,9 +124,11 @@ export function TijdlijnItem({
             {meta.label}
           </span>
         </div>
-        <div className="mt-0.5 truncate text-sm text-muted-foreground">
-          {samenvatting(item)}
-        </div>
+        {inhoud && (
+          <div className="mt-0.5 truncate text-sm text-muted-foreground">
+            {inhoud}
+          </div>
+        )}
         {notitie && (
           <div className="mt-0.5 whitespace-pre-line text-sm italic text-muted-foreground/80">
             {notitie}

@@ -21,7 +21,7 @@ export function SideNav() {
   return (
     <nav
       aria-label="Hoofdnavigatie"
-      className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-border bg-card/60 px-3 py-8 lg:flex xl:w-64"
+      className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-56 shrink-0 flex-col border-r border-border bg-card/60 px-3 py-8 lg:flex xl:w-64"
     >
       <div className="mb-8 px-3">
         <span className="font-heading text-lg font-semibold text-foreground">

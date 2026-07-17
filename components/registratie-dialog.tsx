@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { VoedingFormulier } from "@/components/formulieren/voeding-formulier"
 import { LuierFormulier } from "@/components/formulieren/luier-formulier"
 import { TemperatuurFormulier } from "@/components/formulieren/temperatuur-formulier"
-import { BoertjeFormulier } from "@/components/formulieren/boertje-formulier"
+import { SpugenFormulier } from "@/components/formulieren/spugen-formulier"
 import { VitamineFormulier } from "@/components/formulieren/vitamine-formulier"
 import { MedicatieFormulier } from "@/components/formulieren/medicatie-formulier"
 import { GroeiFormulier } from "@/components/formulieren/groei-formulier"
@@ -20,7 +20,6 @@ import { SlaapFormulier } from "@/components/formulieren/slaap-formulier"
 import { HuilFormulier } from "@/components/formulieren/huil-formulier"
 import { KolfFormulier } from "@/components/formulieren/kolf-formulier"
 import type {
-  BoertjeItem,
   GroeiItem,
   HuilItem,
   KolfItem,
@@ -28,6 +27,7 @@ import type {
   MedicatieItem,
   SlaapItem,
   Soort,
+  SpugenItem,
   TemperatuurItem,
   VitamineItem,
   VoedingItem,
@@ -37,7 +37,7 @@ const titels: Record<Soort, string> = {
   voeding: "Voeding",
   luier: "Luier",
   temperatuur: "Temperatuur",
-  boertje: "Boertje / spugen",
+  spugen: "Spugen",
   vitamine: "Vitamine",
   medicatie: "Medicatie",
   groei: "Groei",
@@ -50,7 +50,7 @@ export type Bewerking =
   | { soort: "voeding"; record?: VoedingItem }
   | { soort: "luier"; record?: LuierItem }
   | { soort: "temperatuur"; record?: TemperatuurItem }
-  | { soort: "boertje"; record?: BoertjeItem }
+  | { soort: "spugen"; record?: SpugenItem }
   | { soort: "vitamine"; record?: VitamineItem }
   | { soort: "medicatie"; record?: MedicatieItem }
   | { soort: "groei"; record?: GroeiItem }
@@ -134,8 +134,8 @@ export function RegistratieDialog({
           {bewerking.soort === "temperatuur" && (
             <TemperatuurFormulier bestaand={bewerking.record} onKlaar={onClose} />
           )}
-          {bewerking.soort === "boertje" && (
-            <BoertjeFormulier bestaand={bewerking.record} onKlaar={onClose} />
+          {bewerking.soort === "spugen" && (
+            <SpugenFormulier bestaand={bewerking.record} onKlaar={onClose} />
           )}
           {bewerking.soort === "vitamine" && (
             <VitamineFormulier bestaand={bewerking.record} onKlaar={onClose} />

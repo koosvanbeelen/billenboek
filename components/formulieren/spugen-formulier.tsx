@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 import { DatumTijdKiezer } from "@/components/datum-tijd-kiezer"
-import { voegBoertjeToe, werkBoertjeBij } from "@/app/actions/registraties"
+import { voegSpugenToe, werkSpugenBij } from "@/app/actions/registraties"
 import { nuInputWaarde, datumNaarInput } from "@/lib/datum"
-import type { BoertjeItem } from "@/lib/types"
+import type { SpugenItem } from "@/lib/types"
 
-type Props = { bestaand?: BoertjeItem; onKlaar: () => void }
+type Props = { bestaand?: SpugenItem; onKlaar: () => void }
 
-export function BoertjeFormulier({ bestaand, onKlaar }: Props) {
+export function SpugenFormulier({ bestaand, onKlaar }: Props) {
   const [bezig, setBezig] = useState(false)
   const [datumTijd, setDatumTijd] = useState(
     bestaand ? datumNaarInput(new Date(bestaand.datumTijd)) : nuInputWaarde(),
@@ -25,8 +25,8 @@ export function BoertjeFormulier({ bestaand, onKlaar }: Props) {
     setFout(null)
     try {
       const input = { datumTijd, notitie: notitie.trim() || undefined }
-      if (bestaand) await werkBoertjeBij(bestaand.id, input)
-      else await voegBoertjeToe(input)
+      if (bestaand) await werkSpugenBij(bestaand.id, input)
+      else await voegSpugenToe(input)
       toast.success(bestaand ? "Bijgewerkt" : "Opgeslagen")
       onKlaar()
     } catch {

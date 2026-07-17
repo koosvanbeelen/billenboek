@@ -24,7 +24,7 @@ export const soortMeta: Record<
     icon: Thermometer,
     kleur: "text-rose-600 bg-rose-500/10",
   },
-  boertje: { label: "Boertje", icon: Wind, kleur: "text-teal-600 bg-teal-500/10" },
+  spugen: { label: "Spugen", icon: Wind, kleur: "text-teal-600 bg-teal-500/10" },
   vitamine: {
     label: "Vitamine",
     icon: Sparkles,
