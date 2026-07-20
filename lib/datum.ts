@@ -144,3 +144,11 @@ export function formatDuur(minuten: number): string {
   if (rest === 0) return `${uren}u`
   return `${uren}u ${rest}m`
 }
+
+// "02:15" uit een aantal minuten (uu:mm met voorloopnullen), voor de
+// "tijd sinds..."-tellers.
+export function formatUuMm(minuten: number): string {
+  const uren = Math.floor(minuten / 60)
+  const rest = minuten % 60
+  return `${String(uren).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+}

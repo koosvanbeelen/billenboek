@@ -1,23 +1,24 @@
 "use server"
 
-import { and, eq, gte, lte } from "drizzle-orm"
+import { and, desc, eq, gte, lte } from "drizzle-orm"
 import type { AnyPgColumn } from "drizzle-orm/pg-core"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import {
+  boertjesSpugen,
   groei,
   huilen,
   kolven,
   luiers,
   medicatie,
   slapen,
-  spugen,
   temperaturen,
   vitamines,
   voedingen,
 } from "@/lib/db/schema"
-import { dagGrenzen, duurInMinuten, inputNaarDatum } from "@/lib/datum"
+import { dagGrenzen, datumNaarInput, duurInMinuten, inputNaarDatum } from "@/lib/datum"
 import type {
+  BoertjeItem,
   DagGegevens,
   GroeiItem,
   HuilItem,
@@ -26,30 +27,29 @@ import type {
   MedicatieItem,
   SlaapItem,
   Soort,
-  SpugenItem,
   TemperatuurItem,
   TijdlijnItem,
   VitamineItem,
   VoedingItem,
 } from "@/lib/types"
 import {
+  boertjeSchema,
   groeiSchema,
   huilSchema,
   kolfSchema,
   luierSchema,
   medicatieSchema,
   slaapSchema,
-  spugenSchema,
   temperatuurSchema,
   vitamineSchema,
   voedingSchema,
+  type BoertjeInput,
   type GroeiInput,
   type HuilInput,
   type KolfInput,
   type LuierInput,
   type MedicatieInput,
   type SlaapInput,
-  type SpugenInput,
   type TemperatuurInput,
   type VitamineInput,
   type VoedingInput,
@@ -71,19 +71,43 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const binnen = (kolom: AnyPgColumn<{ data: Date }>) =>
     and(gte(kolom, van), lte(kolom, tot))
 
-  const [vRows, lRows, tRows, bRows, viRows, mRows, gRows, sRows, hRows, kRows] =
-    await Promise.all([
-      db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
-      db.select().from(luiers).where(binnen(luiers.datumTijd)),
-      db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
-      db.select().from(spugen).where(binnen(spugen.datumTijd)),
-      db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
-      db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
-      db.select().from(groei).where(binnen(groei.datumTijd)),
-      db.select().from(slapen).where(binnen(slapen.start)),
-      db.select().from(huilen).where(binnen(huilen.start)),
-      db.select().from(kolven).where(binnen(kolven.datumTijd)),
-    ])
+  const [
+    vRows,
+    lRows,
+    tRows,
+    bRows,
+    viRows,
+    mRows,
+    gRows,
+    sRows,
+    hRows,
+    kRows,
+    laatsteVoedingRij,
+    laatsteLuierRij,
+  ] = await Promise.all([
+    db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
+    db.select().from(luiers).where(binnen(luiers.datumTijd)),
+    db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
+    db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
+    db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
+    db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
+    db.select().from(groei).where(binnen(groei.datumTijd)),
+    db.select().from(slapen).where(binnen(slapen.start)),
+    db.select().from(huilen).where(binnen(huilen.start)),
+    db.select().from(kolven).where(binnen(kolven.datumTijd)),
+    // Meest recente voeding/luier over de hele geschiedenis (niet begrensd
+    // tot deze dag), voor de "tijd sinds laatste..."-tellers.
+    db
+      .select({ datumTijd: voedingen.datumTijd })
+      .from(voedingen)
+      .orderBy(desc(voedingen.datumTijd))
+      .limit(1),
+    db
+      .select({ datumTijd: luiers.datumTijd })
+      .from(luiers)
+      .orderBy(desc(luiers.datumTijd))
+      .limit(1),
+  ])
 
   const items: TijdlijnItem[] = []
 
@@ -131,14 +155,14 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   }
   for (const r of bRows) {
     items.push({
-      soort: "spugen",
+      soort: "boertje",
       id: r.id,
       datumTijd: iso(r.datumTijd),
       record: {
         id: r.id,
         datumTijd: iso(r.datumTijd),
         notitie: r.notitie,
-      } satisfies SpugenItem,
+      } satisfies BoertjeItem,
     })
   }
   for (const r of viRows) {
@@ -231,11 +255,21 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
 
   items.sort((a, b) => a.datumTijd.localeCompare(b.datumTijd))
 
-  const tellers = {
+  const tellers: DagGegevens["tellers"] = {
     voedingenAantal: vRows.length,
     voedingenMinuten: vRows.reduce((s, r) => s + (r.duurMinuten ?? 0), 0),
+    luiersAantal: lRows.length,
     luiersPoep: lRows.filter((r) => r.poep).length,
     luiersPlas: lRows.filter((r) => r.plas).length,
+    mlGekolfd: kRows.reduce((s, r) => s + r.hoeveelheidMl, 0),
+    slaapMinuten: sRows.reduce((s, r) => s + r.duurMinuten, 0),
+    huilMinuten: hRows.reduce((s, r) => s + r.duurMinuten, 0),
+    laatsteVoeding: laatsteVoedingRij[0]
+      ? datumNaarInput(laatsteVoedingRij[0].datumTijd)
+      : null,
+    laatsteLuier: laatsteLuierRij[0]
+      ? datumNaarInput(laatsteLuierRij[0].datumTijd)
+      : null,
   }
 
   return { datum, items, tellers }
@@ -344,32 +378,32 @@ export async function verwijderTemperatuur(id: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Spugen
+// Boertje / Spugen
 // ---------------------------------------------------------------------------
-export async function voegSpugenToe(input: SpugenInput) {
-  const d = spugenSchema.parse(input)
-  await db.insert(spugen).values({
+export async function voegBoertjeToe(input: BoertjeInput) {
+  const d = boertjeSchema.parse(input)
+  await db.insert(boertjesSpugen).values({
     datumTijd: inputNaarDatum(d.datumTijd),
     notitie: d.notitie || null,
   })
   herlaad()
 }
 
-export async function werkSpugenBij(id: number, input: SpugenInput) {
-  const d = spugenSchema.parse(input)
+export async function werkBoertjeBij(id: number, input: BoertjeInput) {
+  const d = boertjeSchema.parse(input)
   await db
-    .update(spugen)
+    .update(boertjesSpugen)
     .set({
       datumTijd: inputNaarDatum(d.datumTijd),
       notitie: d.notitie || null,
       bijgewerktOp: new Date(),
     })
-    .where(eq(spugen.id, id))
+    .where(eq(boertjesSpugen.id, id))
   herlaad()
 }
 
-export async function verwijderSpugen(id: number) {
-  await db.delete(spugen).where(eq(spugen.id, id))
+export async function verwijderBoertje(id: number) {
+  await db.delete(boertjesSpugen).where(eq(boertjesSpugen.id, id))
   herlaad()
 }
 
@@ -593,8 +627,8 @@ export async function verwijderRegistratie(soort: Soort, id: number) {
     case "temperatuur":
       await db.delete(temperaturen).where(eq(temperaturen.id, id))
       break
-    case "spugen":
-      await db.delete(spugen).where(eq(spugen.id, id))
+    case "boertje":
+      await db.delete(boertjesSpugen).where(eq(boertjesSpugen.id, id))
       break
     case "vitamine":
       await db.delete(vitamines).where(eq(vitamines.id, id))

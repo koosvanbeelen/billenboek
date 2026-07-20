@@ -11,7 +11,7 @@ export const ALLE_SOORTEN: Soort[] = [
   "voeding",
   "luier",
   "temperatuur",
-  "spugen",
+  "boertje",
   "vitamine",
   "medicatie",
   "groei",
