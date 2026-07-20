@@ -2,7 +2,7 @@ export type Soort =
   | "voeding"
   | "luier"
   | "temperatuur"
-  | "spugen"
+  | "boertje"
   | "vitamine"
   | "medicatie"
   | "groei"
@@ -34,7 +34,7 @@ export type TemperatuurItem = {
   temperatuur: number
 }
 
-export type SpugenItem = {
+export type BoertjeItem = {
   id: number
   datumTijd: string
   notitie: string | null
@@ -100,7 +100,7 @@ export type TijdlijnItem =
       datumTijd: string
       record: TemperatuurItem
     }
-  | { soort: "spugen"; id: number; datumTijd: string; record: SpugenItem }
+  | { soort: "boertje"; id: number; datumTijd: string; record: BoertjeItem }
   | { soort: "vitamine"; id: number; datumTijd: string; record: VitamineItem }
   | {
       soort: "medicatie"
@@ -116,8 +116,17 @@ export type TijdlijnItem =
 export type DagTellers = {
   voedingenAantal: number
   voedingenMinuten: number
+  luiersAantal: number
   luiersPoep: number
   luiersPlas: number
+  mlGekolfd: number
+  slaapMinuten: number
+  huilMinuten: number
+  // Meest recente voeding/luier over de hele geschiedenis (niet begrensd tot
+  // deze dag), als "yyyy-MM-ddTHH:mm" wandkloktijd-string, of null als er
+  // nog nooit een geregistreerd is. Gebruikt voor "tijd sinds laatste...".
+  laatsteVoeding: string | null
+  laatsteLuier: string | null
 }
 
 export type DagGegevens = {

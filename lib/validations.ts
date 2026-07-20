@@ -40,7 +40,7 @@ export const temperatuurSchema = z.object({
     .max(45, "Te hoog"),
 })
 
-export const spugenSchema = z.object({
+export const boertjeSchema = z.object({
   datumTijd,
   notitie: z.string().max(500).optional(),
 })
@@ -119,7 +119,7 @@ export const notitieSchema = z.object({
 export type VoedingInput = z.infer<typeof voedingSchema>
 export type LuierInput = z.infer<typeof luierSchema>
 export type TemperatuurInput = z.infer<typeof temperatuurSchema>
-export type SpugenInput = z.infer<typeof spugenSchema>
+export type BoertjeInput = z.infer<typeof boertjeSchema>
 export type VitamineInput = z.infer<typeof vitamineSchema>
 export type MedicatieInput = z.infer<typeof medicatieSchema>
 export type NotitieInput = z.infer<typeof notitieSchema>
