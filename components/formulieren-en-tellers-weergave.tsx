@@ -108,8 +108,7 @@ export function FormulierenEnTellersWeergave() {
               Tellers
             </span>
             <span className="text-sm text-muted-foreground">
-              Kies maximaal {MAX_TELLERS} tellers voor bovenaan Vandaag en
-              Geschiedenis
+              Kies maximaal {MAX_TELLERS} tellers voor bovenaan
               {mounted && (
                 <>
                   {" "}
