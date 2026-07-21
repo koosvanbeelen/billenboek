@@ -71,32 +71,30 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const binnen = (kolom: AnyPgColumn<{ data: Date }>) =>
     and(gte(kolom, van), lte(kolom, tot))
 
-  const [
-    vRows,
-    lRows,
-    tRows,
-    bRows,
-    viRows,
-    mRows,
-    gRows,
-    sRows,
-    hRows,
-    kRows,
-    laatsteVoedingRij,
-    laatsteLuierRij,
-  ] = await Promise.all([
-    db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
-    db.select().from(luiers).where(binnen(luiers.datumTijd)),
-    db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
-    db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
-    db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
-    db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
-    db.select().from(groei).where(binnen(groei.datumTijd)),
-    db.select().from(slapen).where(binnen(slapen.start)),
-    db.select().from(huilen).where(binnen(huilen.start)),
-    db.select().from(kolven).where(binnen(kolven.datumTijd)),
-    // Meest recente voeding/luier over de hele geschiedenis (niet begrensd
-    // tot deze dag), voor de "tijd sinds laatste..."-tellers.
+  // Twee aparte batches i.p.v. één grote Promise.all: de standaard pg-pool
+  // staat maximaal 10 gelijktijdige verbindingen toe. Met alle losse
+  // queries in één keer (12 stuks) kon dat de pool overbelasten, vooral
+  // vlak na het "opstarten" van een geslapen Neon-compute — met soms een
+  // schijnbaar willekeurige query die als eerste faalde. De twee "meest
+  // recente"-lookups voor de tellers zijn niet tijdkritisch, dus die volgen
+  // gewoon na de eerste batch.
+  const [vRows, lRows, tRows, bRows, viRows, mRows, gRows, sRows, hRows, kRows] =
+    await Promise.all([
+      db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
+      db.select().from(luiers).where(binnen(luiers.datumTijd)),
+      db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
+      db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
+      db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
+      db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
+      db.select().from(groei).where(binnen(groei.datumTijd)),
+      db.select().from(slapen).where(binnen(slapen.start)),
+      db.select().from(huilen).where(binnen(huilen.start)),
+      db.select().from(kolven).where(binnen(kolven.datumTijd)),
+    ])
+
+  // Meest recente voeding/luier over de hele geschiedenis (niet begrensd
+  // tot deze dag), voor de "tijd sinds laatste..."-tellers.
+  const [laatsteVoedingRij, laatsteLuierRij] = await Promise.all([
     db
       .select({ datumTijd: voedingen.datumTijd })
       .from(voedingen)
