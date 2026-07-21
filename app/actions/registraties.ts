@@ -71,41 +71,40 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const binnen = (kolom: AnyPgColumn<{ data: Date }>) =>
     and(gte(kolom, van), lte(kolom, tot))
 
-  // Twee aparte batches i.p.v. één grote Promise.all: de standaard pg-pool
-  // staat maximaal 10 gelijktijdige verbindingen toe. Met alle losse
-  // queries in één keer (12 stuks) kon dat de pool overbelasten, vooral
-  // vlak na het "opstarten" van een geslapen Neon-compute — met soms een
-  // schijnbaar willekeurige query die als eerste faalde. De twee "meest
-  // recente"-lookups voor de tellers zijn niet tijdkritisch, dus die volgen
-  // gewoon na de eerste batch.
-  const [vRows, lRows, tRows, bRows, viRows, mRows, gRows, sRows, hRows, kRows] =
-    await Promise.all([
-      db.select().from(voedingen).where(binnen(voedingen.datumTijd)),
-      db.select().from(luiers).where(binnen(luiers.datumTijd)),
-      db.select().from(temperaturen).where(binnen(temperaturen.datumTijd)),
-      db.select().from(boertjesSpugen).where(binnen(boertjesSpugen.datumTijd)),
-      db.select().from(vitamines).where(binnen(vitamines.datumTijd)),
-      db.select().from(medicatie).where(binnen(medicatie.datumTijd)),
-      db.select().from(groei).where(binnen(groei.datumTijd)),
-      db.select().from(slapen).where(binnen(slapen.start)),
-      db.select().from(huilen).where(binnen(huilen.start)),
-      db.select().from(kolven).where(binnen(kolven.datumTijd)),
-    ])
+  // Alles na elkaar i.p.v. via Promise.all: gelijktijdige queries (zelfs
+  // maar een stuk of 10) bleken de Neon-verbinding te overbelasten, met een
+  // schijnbaar willekeurige query die dan faalde. Sequentieel ophalen kost
+  // wat milliseconden meer, maar is voor deze schaal (één gezin) volledig
+  // verwaarloosbaar en voorkomt dit probleem structureel.
+  const vRows = await db.select().from(voedingen).where(binnen(voedingen.datumTijd))
+  const lRows = await db.select().from(luiers).where(binnen(luiers.datumTijd))
+  const tRows = await db
+    .select()
+    .from(temperaturen)
+    .where(binnen(temperaturen.datumTijd))
+  const bRows = await db
+    .select()
+    .from(boertjesSpugen)
+    .where(binnen(boertjesSpugen.datumTijd))
+  const viRows = await db.select().from(vitamines).where(binnen(vitamines.datumTijd))
+  const mRows = await db.select().from(medicatie).where(binnen(medicatie.datumTijd))
+  const gRows = await db.select().from(groei).where(binnen(groei.datumTijd))
+  const sRows = await db.select().from(slapen).where(binnen(slapen.start))
+  const hRows = await db.select().from(huilen).where(binnen(huilen.start))
+  const kRows = await db.select().from(kolven).where(binnen(kolven.datumTijd))
 
   // Meest recente voeding/luier over de hele geschiedenis (niet begrensd
   // tot deze dag), voor de "tijd sinds laatste..."-tellers.
-  const [laatsteVoedingRij, laatsteLuierRij] = await Promise.all([
-    db
-      .select({ datumTijd: voedingen.datumTijd })
-      .from(voedingen)
-      .orderBy(desc(voedingen.datumTijd))
-      .limit(1),
-    db
-      .select({ datumTijd: luiers.datumTijd })
-      .from(luiers)
-      .orderBy(desc(luiers.datumTijd))
-      .limit(1),
-  ])
+  const laatsteVoedingRij = await db
+    .select({ datumTijd: voedingen.datumTijd })
+    .from(voedingen)
+    .orderBy(desc(voedingen.datumTijd))
+    .limit(1)
+  const laatsteLuierRij = await db
+    .select({ datumTijd: luiers.datumTijd })
+    .from(luiers)
+    .orderBy(desc(luiers.datumTijd))
+    .limit(1)
 
   const items: TijdlijnItem[] = []
 

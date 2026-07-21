@@ -28,21 +28,23 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
   const vanDatum = new Date(zestigDagenGeleden + "T00:00:00Z")
   const totDatum = new Date(vandaag + "T23:59:59Z")
 
-  // Haul alle data in één keer op voor de periode
-  const [vRows, lRows, tRows] = await Promise.all([
-    db
-      .select()
-      .from(voedingen)
-      .where(and(gte(voedingen.datumTijd, vanDatum), lte(voedingen.datumTijd, totDatum))),
-    db
-      .select()
-      .from(luiers)
-      .where(and(gte(luiers.datumTijd, vanDatum), lte(luiers.datumTijd, totDatum))),
-    db
-      .select()
-      .from(temperaturen)
-      .where(and(gte(temperaturen.datumTijd, vanDatum), lte(temperaturen.datumTijd, totDatum))),
-  ])
+  // Na elkaar i.p.v. gelijktijdig: zie de toelichting in
+  // app/actions/registraties.ts — deze Neon-verbinding blijkt gevoelig
+  // voor meerdere gelijktijdige queries.
+  const vRows = await db
+    .select()
+    .from(voedingen)
+    .where(and(gte(voedingen.datumTijd, vanDatum), lte(voedingen.datumTijd, totDatum)))
+  const lRows = await db
+    .select()
+    .from(luiers)
+    .where(and(gte(luiers.datumTijd, vanDatum), lte(luiers.datumTijd, totDatum)))
+  const tRows = await db
+    .select()
+    .from(temperaturen)
+    .where(
+      and(gte(temperaturen.datumTijd, vanDatum), lte(temperaturen.datumTijd, totDatum)),
+    )
 
   // Groepeer per dag
   const perDag = new Map<
