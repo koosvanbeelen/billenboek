@@ -54,7 +54,7 @@ export const temperaturen = pgTable("temperaturen", {
 })
 
 // Boertjes / Spugen (burps / spit-up)
-export const boertjesSpugen = pgTable("boertjes_spugen", {
+export const boertjesSpugen = pgTable("spugen", {
   id: serial("id").primaryKey(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   notitie: text("notitie"),
