@@ -23,7 +23,9 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
   const [type, setType] = useState<"borstvoeding" | "kolfmelk" | "kunstvoeding">(
     bestaand?.type ?? "borstvoeding",
   )
-  const [borst, setBorst] = useState<BorstWaarde>(bestaand?.borst ?? "links")
+  const [borst, setBorst] = useState<BorstWaarde | undefined>(
+    bestaand?.borst ?? undefined,
+  )
   const [datumTijd, setDatumTijd] = useState(
     bestaand ? datumNaarInput(new Date(bestaand.datumTijd)) : nuInputWaarde(),
   )
@@ -35,6 +37,10 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
   const [fout, setFout] = useState<string | null>(null)
 
   async function verstuur() {
+    if (type === "borstvoeding" && !borst) {
+      setFout("Kies welke borst")
+      return
+    }
     setBezig(true)
     setFout(null)
     try {
