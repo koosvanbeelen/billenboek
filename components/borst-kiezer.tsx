@@ -37,16 +37,18 @@ function volgordeNaarWaarde(volgorde: Kant[]): BorstWaarde | undefined {
   return volgorde.join("-") as BorstWaarde
 }
 
-// Laat de gebruiker links en/of rechts aantikken. Bij beide kanten wordt de
-// volgorde waarin ze zijn aangeklikt zichtbaar gemaakt met genummerde badges,
-// zodat duidelijk is of het links-rechts of rechts-links was.
+// Laat de gebruiker links en/of rechts aantikken en weer uitzetten. Bij beide
+// kanten wordt de volgorde waarin ze zijn aangeklikt zichtbaar gemaakt met
+// genummerde badges, zodat duidelijk is of het links-rechts of rechts-links
+// was. Er is geen minimum: de gebruiker kan alles uitzetten tot er niets meer
+// geselecteerd is.
 export function BorstKiezer({
   waarde,
   onChange,
   className,
 }: {
   waarde: BorstWaarde | undefined
-  onChange: (waarde: BorstWaarde) => void
+  onChange: (waarde: BorstWaarde | undefined) => void
   className?: string
 }) {
   const volgorde = parseVolgorde(waarde)
@@ -56,16 +58,10 @@ export function BorstKiezer({
 
   function klik(kant: Kant) {
     const actief = volgorde.includes(kant)
-    let volgende: Kant[]
-    if (actief) {
-      // Minimaal één kant moet geselecteerd blijven.
-      if (volgorde.length === 1) return
-      volgende = volgorde.filter((k) => k !== kant)
-    } else {
-      volgende = [...volgorde, kant]
-    }
-    const nieuw = volgordeNaarWaarde(volgende)
-    if (nieuw) onChange(nieuw)
+    const volgende = actief
+      ? volgorde.filter((k) => k !== kant)
+      : [...volgorde, kant]
+    onChange(volgordeNaarWaarde(volgende))
   }
 
   return (
