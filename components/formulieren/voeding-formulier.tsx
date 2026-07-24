@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 import { KeuzeGroep } from "@/components/keuze-groep"
+import { BorstKiezer, type BorstWaarde } from "@/components/borst-kiezer"
 import { DatumTijdKiezer } from "@/components/datum-tijd-kiezer"
 import { voegVoedingToe, werkVoedingBij } from "@/app/actions/registraties"
 import { nuInputWaarde, datumNaarInput } from "@/lib/datum"
@@ -22,9 +23,7 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
   const [type, setType] = useState<"borstvoeding" | "kolfmelk" | "kunstvoeding">(
     bestaand?.type ?? "borstvoeding",
   )
-  const [borst, setBorst] = useState<"links" | "rechts" | "beide">(
-    bestaand?.borst ?? "links",
-  )
+  const [borst, setBorst] = useState<BorstWaarde>(bestaand?.borst ?? "links")
   const [datumTijd, setDatumTijd] = useState(
     bestaand ? datumNaarInput(new Date(bestaand.datumTijd)) : nuInputWaarde(),
   )
@@ -79,15 +78,7 @@ export function VoedingFormulier({ bestaand, onKlaar }: Props) {
       {type === "borstvoeding" && (
         <Field>
           <FieldLabel>Welke borst</FieldLabel>
-          <KeuzeGroep
-            waarde={borst}
-            onChange={setBorst}
-            opties={[
-              { waarde: "links", label: "Links" },
-              { waarde: "rechts", label: "Rechts" },
-              { waarde: "beide", label: "Beide" },
-            ]}
-          />
+          <BorstKiezer waarde={borst} onChange={setBorst} />
         </Field>
       )}
 

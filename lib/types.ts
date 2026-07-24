@@ -14,7 +14,8 @@ export type VoedingItem = {
   id: number
   datumTijd: string
   type: "borstvoeding" | "kolfmelk" | "kunstvoeding"
-  borst: "links" | "rechts" | "beide" | null
+  // "beide" is een legacy-waarde van vóór het bijhouden van de volgorde.
+  borst: "links" | "rechts" | "links-rechts" | "rechts-links" | "beide" | null
   duurMinuten: number | null
   hoeveelheidMl: number | null
   notitie: string | null

@@ -4,16 +4,33 @@ import { cn } from "@/lib/utils"
 import { TemperatuurIndicator } from "@/components/temperatuur-indicator"
 import { soortMeta } from "@/lib/soorten"
 import { formatTijd, formatDuur } from "@/lib/datum"
-import type { TijdlijnItem as Item } from "@/lib/types"
+import type { TijdlijnItem as Item, VoedingItem } from "@/lib/types"
+
+// Zet de borst-waarde van een voeding om naar leesbare tekst, inclusief
+// volgorde wanneer beide kanten zijn gebruikt (bijv. "links, dan rechts").
+function borstvoedingLabel(borst: VoedingItem["borst"]): string {
+  switch (borst) {
+    case "links":
+      return "linker borst"
+    case "rechts":
+      return "rechter borst"
+    case "links-rechts":
+      return "links, dan rechts"
+    case "rechts-links":
+      return "rechts, dan links"
+    case "beide":
+      return "beide borsten"
+    default:
+      return "borst"
+  }
+}
 
 function samenvatting(item: Item): React.ReactNode {
   switch (item.soort) {
     case "voeding": {
       const r = item.record
       if (r.type === "borstvoeding") {
-        const borst =
-          r.borst === "beide" ? "beide borsten" : `${r.borst}er borst`
-        return `Borstvoeding · ${borst}${r.duurMinuten ? ` · ${r.duurMinuten} min` : ""}`
+        return `Borstvoeding · ${borstvoedingLabel(r.borst)}${r.duurMinuten ? ` · ${r.duurMinuten} min` : ""}`
       }
       if (r.type === "kolfmelk") {
         return `Gekolfde melk${r.hoeveelheidMl ? ` · ${r.hoeveelheidMl} ml` : ""}`

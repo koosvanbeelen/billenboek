@@ -13,7 +13,7 @@ export const voedingen = pgTable("voedingen", {
   id: serial("id").primaryKey(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   type: text("type").notNull(), // "borstvoeding" | "kolfmelk" | "kunstvoeding"
-  borst: text("borst"), // "links" | "rechts" | "beide"
+  borst: text("borst"), // "links" | "rechts" | "links-rechts" | "rechts-links" | "beide" (legacy)
   duurMinuten: integer("duur_minuten"),
   hoeveelheidMl: integer("hoeveelheid_ml"),
   notitie: text("notitie"),
