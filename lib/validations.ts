@@ -10,7 +10,11 @@ export const voedingSchema = z
   .object({
     datumTijd,
     type: z.enum(["borstvoeding", "kolfmelk", "kunstvoeding"]),
-    borst: z.enum(["links", "rechts", "beide"]).optional(),
+    // "beide" blijft geldig zodat bestaande registraties van vóór het
+    // bijhouden van de volgorde nog steeds bewerkt kunnen worden.
+    borst: z
+      .enum(["links", "rechts", "links-rechts", "rechts-links", "beide"])
+      .optional(),
     duurMinuten: z.coerce.number().int().min(0).max(360).optional(),
     hoeveelheidMl: z.coerce.number().int().min(0).max(2000).optional(),
     notitie: z.string().max(500).optional(),
