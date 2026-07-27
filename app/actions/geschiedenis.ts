@@ -1,7 +1,7 @@
 "use server"
 
 import { voedingen, luiers, temperaturen } from "@/lib/db/schema"
-import { db } from "@/lib/db"
+import { metHuidigGezin } from "@/lib/db/gezin"
 import { vandaagDatum, dagGrenzen } from "@/lib/datum"
 import { and, gte, lte } from "drizzle-orm"
 
@@ -19,6 +19,7 @@ export type DagSamenvatting = {
  * Bouwt een samenvatting per dag met voedingen, luiers en gemiddelde temp.
  */
 export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
+  return metHuidigGezin(async (db) => {
   const vandaag = vandaagDatum()
   const zestigDagenGeleden = new Date(
     new Date(vandaag).getTime() - 60 * 24 * 60 * 60 * 1000
@@ -28,23 +29,21 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
   const vanDatum = new Date(zestigDagenGeleden + "T00:00:00Z")
   const totDatum = new Date(vandaag + "T23:59:59Z")
 
-  // Na elkaar i.p.v. gelijktijdig: zie de toelichting in
-  // app/actions/registraties.ts — deze Neon-verbinding blijkt gevoelig
-  // voor meerdere gelijktijdige queries.
-  const vRows = await db
-    .select()
-    .from(voedingen)
-    .where(and(gte(voedingen.datumTijd, vanDatum), lte(voedingen.datumTijd, totDatum)))
-  const lRows = await db
-    .select()
-    .from(luiers)
-    .where(and(gte(luiers.datumTijd, vanDatum), lte(luiers.datumTijd, totDatum)))
-  const tRows = await db
-    .select()
-    .from(temperaturen)
-    .where(
-      and(gte(temperaturen.datumTijd, vanDatum), lte(temperaturen.datumTijd, totDatum)),
-    )
+  // Haul alle data in één keer op voor de periode
+  const [vRows, lRows, tRows] = await Promise.all([
+    db
+      .select()
+      .from(voedingen)
+      .where(and(gte(voedingen.datumTijd, vanDatum), lte(voedingen.datumTijd, totDatum))),
+    db
+      .select()
+      .from(luiers)
+      .where(and(gte(luiers.datumTijd, vanDatum), lte(luiers.datumTijd, totDatum))),
+    db
+      .select()
+      .from(temperaturen)
+      .where(and(gte(temperaturen.datumTijd, vanDatum), lte(temperaturen.datumTijd, totDatum))),
+  ])
 
   // Groepeer per dag
   const perDag = new Map<
@@ -124,4 +123,5 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
             )
           : null,
     }))
+  })
 }

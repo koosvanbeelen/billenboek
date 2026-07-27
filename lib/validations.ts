@@ -10,11 +10,7 @@ export const voedingSchema = z
   .object({
     datumTijd,
     type: z.enum(["borstvoeding", "kolfmelk", "kunstvoeding"]),
-    // "beide" blijft geldig zodat bestaande registraties van vóór het
-    // bijhouden van de volgorde nog steeds bewerkt kunnen worden.
-    borst: z
-      .enum(["links", "rechts", "links-rechts", "rechts-links", "beide"])
-      .optional(),
+    borst: z.enum(["links", "rechts", "beide"]).optional(),
     duurMinuten: z.coerce.number().int().min(0).max(360).optional(),
     hoeveelheidMl: z.coerce.number().int().min(0).max(2000).optional(),
     notitie: z.string().max(500).optional(),
@@ -44,7 +40,7 @@ export const temperatuurSchema = z.object({
     .max(45, "Te hoog"),
 })
 
-export const boertjeSchema = z.object({
+export const spugenSchema = z.object({
   datumTijd,
   notitie: z.string().max(500).optional(),
 })
@@ -120,10 +116,19 @@ export const notitieSchema = z.object({
   notitie: z.string().min(1, "Schrijf eerst iets").max(4000),
 })
 
+export const kindSchema = z.object({
+  naam: z.string().min(1, "Vul een naam in").max(100),
+  geboortedatum: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Ongeldige datum")
+    .optional()
+    .or(z.literal("")),
+})
+
 export type VoedingInput = z.infer<typeof voedingSchema>
 export type LuierInput = z.infer<typeof luierSchema>
 export type TemperatuurInput = z.infer<typeof temperatuurSchema>
-export type BoertjeInput = z.infer<typeof boertjeSchema>
+export type SpugenInput = z.infer<typeof spugenSchema>
 export type VitamineInput = z.infer<typeof vitamineSchema>
 export type MedicatieInput = z.infer<typeof medicatieSchema>
 export type NotitieInput = z.infer<typeof notitieSchema>
@@ -131,3 +136,4 @@ export type GroeiInput = z.infer<typeof groeiSchema>
 export type SlaapInput = z.infer<typeof slaapSchema>
 export type HuilInput = z.infer<typeof huilSchema>
 export type KolfInput = z.infer<typeof kolfSchema>
+export type KindInput = z.infer<typeof kindSchema>

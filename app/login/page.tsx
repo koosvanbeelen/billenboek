@@ -1,15 +1,24 @@
 import { redirect } from "next/navigation"
-import { isIngelogd } from "@/lib/auth"
+import { auth } from "@/lib/auth/server"
 import { LoginForm } from "@/components/login-form"
 
-export default async function LoginPage() {
-  if (await isIngelogd()) {
-    redirect("/")
+export const dynamic = "force-dynamic"
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackURL?: string }>
+}) {
+  const { data: session } = await auth.getSession()
+  const { callbackURL } = await searchParams
+
+  if (session?.user) {
+    redirect(callbackURL || (session.session?.activeOrganizationId ? "/" : "/gezin/starten"))
   }
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background p-6">
-      <LoginForm />
+      <LoginForm callbackURL={callbackURL || "/"} />
     </main>
   )
 }

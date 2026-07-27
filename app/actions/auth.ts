@@ -1,23 +1,13 @@
 "use server"
 
 import { redirect } from "next/navigation"
-import { controleerAntwoord, maakSessie, verwijderSessie } from "@/lib/auth"
+import { auth } from "@/lib/auth/server"
 
-export async function inloggen(
-  _prevState: { fout?: string } | undefined,
-  formData: FormData,
-): Promise<{ fout?: string }> {
-  const antwoord = String(formData.get("antwoord") ?? "")
-
-  if (!controleerAntwoord(antwoord)) {
-    return { fout: "Dat is niet het juiste antwoord. Probeer het opnieuw." }
-  }
-
-  await maakSessie()
-  redirect("/")
-}
-
+// Inloggen verloopt volledig client-side via authClient.signIn.magicLink()
+// (zie components/login-form.tsx) omdat dat een client-only Neon Auth API
+// is. Uitloggen kan wel als server action, zodat de knop in de
+// Instellingen-pagina simpel blijft.
 export async function uitloggen() {
-  await verwijderSessie()
+  await auth.signOut()
   redirect("/login")
 }
