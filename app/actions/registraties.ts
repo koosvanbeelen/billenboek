@@ -681,9 +681,3 @@ export async function verwijderRegistratie(soort: Soort, id: number) {
     herlaad()
   })
 }
-
-// Compatibiliteitsaliassen: bestaande componenten (o.a. boertje-formulier.tsx)
-// gebruiken nog de oudere naam "Boertje" voor dit registratietype.
-export const voegBoertjeToe = voegSpugenToe
-export const werkBoertjeBij = werkSpugenBij
-export const verwijderBoertje = verwijderSpugen
