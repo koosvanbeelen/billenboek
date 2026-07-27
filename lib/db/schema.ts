@@ -1,7 +1,5 @@
-import { sql } from "drizzle-orm"
 import {
   boolean,
-  date,
   integer,
   numeric,
   pgTable,
@@ -10,37 +8,12 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core"
 
-// Elke tabel met gezinsgegevens krijgt een gezin_id kolom. De standaardwaarde
-// wordt door Postgres zelf ingevuld op basis van de sessievariabele die
-// lib/db/gezin.ts instelt (SET LOCAL / set_config), dus deze hoeft NOOIT
-// handmatig meegegeven te worden bij een insert. Row Level Security zorgt
-// ervoor dat elk gezin alleen zijn eigen rijen ziet.
-// Zie LEES_MIJ_migratie_stap1.sql en LEES_MIJ_migratie_stap2.sql.
-const gezinIdKolom = () =>
-  text("gezin_id")
-    .notNull()
-    .default(sql`current_setting('app.huidig_gezin_id', true)`)
-
-// Kinderen (children). Eén gezin kan meerdere kinderen hebben; op dit moment
-// gebruikt de app altijd het eerste/enige kind van het gezin. Wisselen
-// tussen meerdere kinderen is een toekomstige uitbreiding.
-export const kinderen = pgTable("kinderen", {
-  id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
-  naam: text("naam").notNull(),
-  geboortedatum: date("geboortedatum"),
-  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
-
 // Voedingen (feedings)
 export const voedingen = pgTable("voedingen", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   type: text("type").notNull(), // "borstvoeding" | "kolfmelk" | "kunstvoeding"
-  borst: text("borst"), // "links" | "rechts" | "beide"
+  borst: text("borst"), // "links" | "rechts" | "links-rechts" | "rechts-links" | "beide" (legacy)
   duurMinuten: integer("duur_minuten"),
   hoeveelheidMl: integer("hoeveelheid_ml"),
   notitie: text("notitie"),
@@ -55,7 +28,6 @@ export const voedingen = pgTable("voedingen", {
 // Luiers (diapers)
 export const luiers = pgTable("luiers", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   plas: boolean("plas").notNull().default(false),
   poep: boolean("poep").notNull().default(false),
@@ -71,7 +43,6 @@ export const luiers = pgTable("luiers", {
 // Temperaturen (temperatures)
 export const temperaturen = pgTable("temperaturen", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   temperatuur: numeric("temperatuur", { precision: 4, scale: 1 }).notNull(),
   aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
@@ -82,10 +53,9 @@ export const temperaturen = pgTable("temperaturen", {
     .defaultNow(),
 })
 
-// Spugen (spit-up)
-export const spugen = pgTable("spugen", {
+// Boertjes / Spugen (burps / spit-up)
+export const boertjesSpugen = pgTable("spugen", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   notitie: text("notitie"),
   aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
@@ -99,7 +69,6 @@ export const spugen = pgTable("spugen", {
 // Vitamines (vitamins)
 export const vitamines = pgTable("vitamines", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   vitamineK: boolean("vitamine_k").notNull().default(false),
   vitamineD: boolean("vitamine_d").notNull().default(false),
@@ -114,7 +83,6 @@ export const vitamines = pgTable("vitamines", {
 // Medicatie (medication)
 export const medicatie = pgTable("medicatie", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   naam: text("naam").notNull(),
   dosering: text("dosering"),
@@ -130,7 +98,6 @@ export const medicatie = pgTable("medicatie", {
 // Notities (free-form notes)
 export const notities = pgTable("notities", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -140,7 +107,6 @@ export const notities = pgTable("notities", {
 // Groei (growth: gewicht/lengte metingen)
 export const groei = pgTable("groei", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   gewichtKg: numeric("gewicht_kg", { precision: 5, scale: 2 }),
   lengteCm: numeric("lengte_cm", { precision: 5, scale: 1 }),
@@ -156,7 +122,6 @@ export const groei = pgTable("groei", {
 // Slapen (sleep sessies)
 export const slapen = pgTable("slapen", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   start: timestamp("start", { withTimezone: true }).notNull(),
   einde: timestamp("einde", { withTimezone: true }).notNull(),
   duurMinuten: integer("duur_minuten").notNull(),
@@ -173,7 +138,6 @@ export const slapen = pgTable("slapen", {
 // Huilen (crying sessies)
 export const huilen = pgTable("huilen", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   start: timestamp("start", { withTimezone: true }).notNull(),
   einde: timestamp("einde", { withTimezone: true }).notNull(),
   duurMinuten: integer("duur_minuten").notNull(),
@@ -190,7 +154,6 @@ export const huilen = pgTable("huilen", {
 // Kolven (afkolven van moedermelk)
 export const kolven = pgTable("kolven", {
   id: serial("id").primaryKey(),
-  gezinId: gezinIdKolom(),
   datumTijd: timestamp("datum_tijd", { withTimezone: true }).notNull(),
   borst: text("borst").notNull(), // "links" | "rechts" | "beide"
   hoeveelheidMl: integer("hoeveelheid_ml").notNull(),
@@ -203,11 +166,10 @@ export const kolven = pgTable("kolven", {
     .defaultNow(),
 })
 
-export type Kind = typeof kinderen.$inferSelect
 export type Voeding = typeof voedingen.$inferSelect
 export type Luier = typeof luiers.$inferSelect
 export type Temperatuur = typeof temperaturen.$inferSelect
-export type Spugen = typeof spugen.$inferSelect
+export type BoertjeSpugen = typeof boertjesSpugen.$inferSelect
 export type Vitamine = typeof vitamines.$inferSelect
 export type Medicatie = typeof medicatie.$inferSelect
 export type Notitie = typeof notities.$inferSelect
