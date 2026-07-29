@@ -10,11 +10,7 @@ export const voedingSchema = z
   .object({
     datumTijd,
     type: z.enum(["borstvoeding", "kolfmelk", "kunstvoeding"]),
-    // "beide" blijft geldig zodat bestaande registraties van vóór het
-    // bijhouden van de volgorde nog steeds bewerkt kunnen worden.
-    borst: z
-      .enum(["links", "rechts", "links-rechts", "rechts-links", "beide"])
-      .optional(),
+    borst: z.enum(["links", "rechts", "beide"]).optional(),
     duurMinuten: z.coerce.number().int().min(0).max(360).optional(),
     hoeveelheidMl: z.coerce.number().int().min(0).max(2000).optional(),
     notitie: z.string().max(500).optional(),
@@ -44,7 +40,7 @@ export const temperatuurSchema = z.object({
     .max(45, "Te hoog"),
 })
 
-export const boertjeSchema = z.object({
+export const spugenSchema = z.object({
   datumTijd,
   notitie: z.string().max(500).optional(),
 })
@@ -120,10 +116,73 @@ export const notitieSchema = z.object({
   notitie: z.string().min(1, "Schrijf eerst iets").max(4000),
 })
 
+export const kindSchema = z.object({
+  naam: z.string().min(1, "Vul een naam in").max(100),
+  geboortedatum: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Ongeldige datum")
+    .optional()
+    .or(z.literal("")),
+})
+
+// ---------------------------------------------------------------------------
+// Account & gezin aanmaken (e-mail + wachtwoord)
+// ---------------------------------------------------------------------------
+const email = z
+  .string()
+  .min(1, "Vul een e-mailadres in")
+  .email("Ongeldig e-mailadres")
+
+const wachtwoord = z
+  .string()
+  .min(8, "Minimaal 8 tekens")
+  .max(128, "Maximaal 128 tekens")
+
+export const inloggenSchema = z.object({
+  email,
+  wachtwoord: z.string().min(1, "Vul je wachtwoord in"),
+})
+
+export const registrerenSchema = z.object({
+  email,
+  wachtwoord,
+  gezinNaam: z.string().min(1, "Vul een gezinsnaam in").max(100),
+  kindNaam: z.string().min(1, "Vul een naam in").max(100),
+  geboortedatum: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Ongeldige datum")
+    .optional()
+    .or(z.literal("")),
+  partnerEmail: email.optional().or(z.literal("")),
+})
+
+export const otpSchema = z.object({
+  otp: z
+    .string()
+    .length(6, "Vul de 6-cijferige code in")
+    .regex(/^\d{6}$/, "Alleen cijfers"),
+})
+
+export const wachtwoordVergetenSchema = z.object({ email })
+
+export const wachtwoordResetSchema = z.object({
+  otp: z
+    .string()
+    .length(6, "Vul de 6-cijferige code in")
+    .regex(/^\d{6}$/, "Alleen cijfers"),
+  wachtwoord,
+})
+
+export type InloggenInput = z.infer<typeof inloggenSchema>
+export type RegistrerenInput = z.infer<typeof registrerenSchema>
+export type OtpInput = z.infer<typeof otpSchema>
+export type WachtwoordVergetenInput = z.infer<typeof wachtwoordVergetenSchema>
+export type WachtwoordResetInput = z.infer<typeof wachtwoordResetSchema>
+
 export type VoedingInput = z.infer<typeof voedingSchema>
 export type LuierInput = z.infer<typeof luierSchema>
 export type TemperatuurInput = z.infer<typeof temperatuurSchema>
-export type BoertjeInput = z.infer<typeof boertjeSchema>
+export type SpugenInput = z.infer<typeof spugenSchema>
 export type VitamineInput = z.infer<typeof vitamineSchema>
 export type MedicatieInput = z.infer<typeof medicatieSchema>
 export type NotitieInput = z.infer<typeof notitieSchema>
@@ -131,3 +190,4 @@ export type GroeiInput = z.infer<typeof groeiSchema>
 export type SlaapInput = z.infer<typeof slaapSchema>
 export type HuilInput = z.infer<typeof huilSchema>
 export type KolfInput = z.infer<typeof kolfSchema>
+export type KindInput = z.infer<typeof kindSchema>
