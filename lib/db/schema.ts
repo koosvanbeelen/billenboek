@@ -166,6 +166,19 @@ export const kolven = pgTable("kolven", {
     .defaultNow(),
 })
 
+// Kinderen (baby's die gekoppeld zijn aan een gezin/organization)
+export const kinderen = pgTable("kinderen", {
+  id: serial("id").primaryKey(),
+  naam: text("naam").notNull(),
+  geboortedatum: text("geboortedatum"),
+  gezinId: text("gezin_id").notNull(),
+  aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export type Kind = typeof kinderen.$inferSelect
+
 export type Voeding = typeof voedingen.$inferSelect
 export type Luier = typeof luiers.$inferSelect
 export type Temperatuur = typeof temperaturen.$inferSelect

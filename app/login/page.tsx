@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import { auth } from "@/lib/auth/server"
 import { LoginForm } from "@/components/login-form"
 
@@ -9,7 +10,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ callbackURL?: string }>
 }) {
-  const { data: session } = await auth.getSession()
+  const session = await auth.api.getSession({ headers: await headers() })
   const { callbackURL } = await searchParams
 
   if (session?.user) {

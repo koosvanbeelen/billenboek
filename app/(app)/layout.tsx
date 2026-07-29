@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
-import { isIngelogd } from "@/lib/auth"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth/server"
 import { BottomNav } from "@/components/bottom-nav"
 import { SideNav } from "@/components/side-nav"
 import { Header } from "@/components/header"
@@ -9,7 +10,8 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  if (!(await isIngelogd())) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) {
     redirect("/login")
   }
 
