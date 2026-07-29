@@ -7,10 +7,15 @@
 /* Gesplitste weergave: Vandaag + Notities naast elkaar, als twee
    onafhankelijk scrollende panelen. Actief op laptop/desktop (lg, vanaf
    1024px) EN op tablets in liggende stand (landscape) vanaf 768px breed,
-   ook als die breedte onder de lg-grens blijft. */
-@custom-variant split-view (
-  @media (min-width: 1024px), (min-width: 768px) and (orientation: landscape)
-);
+   ook als die breedte onder de lg-grens blijft. Blok-vorm gebruikt in plaats
+   van de verkorte inline-vorm, omdat sommige PostCSS/Tailwind-versies (o.a.
+   in v0.app) een @custom-variant met meerdere kommagescheiden media-condities
+   op één regel niet correct parsen. */
+@custom-variant split-view {
+  @media (min-width: 1024px), (min-width: 768px) and (orientation: landscape) {
+    @slot;
+  }
+}
 
 @theme inline {
   --font-heading: var(--font-sans);
