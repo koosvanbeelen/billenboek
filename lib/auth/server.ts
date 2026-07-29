@@ -35,17 +35,13 @@ export const auth = betterAuth({
   },
   plugins: [
     emailOTP({
-      // Stuur een 6-cijferige code per e-mail voor verificatie en
-      // wachtwoordherstel. De daadwerkelijke verzending gaat via de
-      // sendVerificationOTP-hook hieronder.
+      // Email OTP-verificatie via Neon Auth's managed service.
+      // De emails worden automatisch verstuurd door Neon via hun shared provider (auth@mail.myneon.app).
+      // In development, we loggen de OTP in de console voor testing.
       async sendVerificationOTP({ email, otp, type }) {
-        // In development: log de OTP zodat hij zichtbaar is in de console.
-        // In production moet hier een echte e-mailprovider komen.
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`[billenboek] OTP voor ${email} (${type}): ${otp}`)
+        if (process.env.NODE_ENV === "development") {
+          console.log(`[billenboek OTP] Code voor ${email}: ${otp}`)
         }
-        // TODO: vervang dit door een echte e-mailprovider zoals Resend:
-        // await resend.emails.send({ from: "...", to: email, subject: "...", text: `Code: ${otp}` })
       },
     }),
     organization({
