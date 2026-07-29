@@ -20,11 +20,20 @@ export default async function VandaagPage({
   ])
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:items-start lg:gap-6 xl:gap-10">
-      <VandaagWeergave data={data} />
-      {/* Notities-paneel: alleen zichtbaar op laptop/desktop (lg+), naast
-          Vandaag. Op telefoon/tablet blijft Notities een eigen tab. */}
-      <aside className="hidden lg:sticky lg:top-10 lg:block">
+    <div className="split-view:grid split-view:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] split-view:items-start split-view:gap-6 xl:gap-10">
+      {/*
+        Beide kolommen krijgen in de gesplitste weergave (desktop lg+, of
+        tablet in landscape) hun eigen vaste hoogte en overflow-y-auto, zodat
+        ze als losse "frames" onafhankelijk van elkaar scrollen — scrollen in
+        Vandaag beweegt Notities niet mee, en andersom. Op telefoon/tablet in
+        portrait blijft dit gewoon één doorlopende pagina.
+      */}
+      <div className="split-view:sticky split-view:top-10 split-view:h-[calc(100dvh-2.5rem)] split-view:overflow-y-auto split-view:overscroll-contain">
+        <VandaagWeergave data={data} />
+      </div>
+      {/* Notities-paneel: alleen zichtbaar in de gesplitste weergave, naast
+          Vandaag. Op telefoon/tablet in portrait blijft Notities een eigen tab. */}
+      <aside className="hidden split-view:sticky split-view:top-10 split-view:block split-view:h-[calc(100dvh-2.5rem)] split-view:overflow-y-auto split-view:overscroll-contain">
         <NotitiesWeergave notities={notities} />
       </aside>
     </div>
