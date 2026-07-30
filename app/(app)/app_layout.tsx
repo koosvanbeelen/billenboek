@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation"
-import { headers } from "next/headers"
 import { auth } from "@/lib/auth/server"
 import { BottomNav } from "@/components/bottom-nav"
 import { SideNav } from "@/components/side-nav"
 import { Header } from "@/components/header"
+
+export const dynamic = "force-dynamic"
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const { data: session } = await auth.getSession()
   if (!session?.user) {
     redirect("/login")
   }
@@ -37,4 +38,3 @@ export default async function AppLayout({
     </div>
   )
 }
-
