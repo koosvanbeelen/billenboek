@@ -1,12 +1,9 @@
 "use client"
 
-import { createAuthClient } from "better-auth/react"
-import { emailOTPClient, organizationClient } from "better-auth/client/plugins"
+import { createAuthClient } from "@neondatabase/auth/next"
 
-export const authClient = createAuthClient({
-  baseURL:
-    typeof window !== "undefined"
-      ? window.location.origin
-      : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  plugins: [emailOTPClient(), organizationClient()],
-})
+// Client-instantie voor gebruik in client components: inloggen via
+// e-mail+wachtwoord, e-mailverificatie met code, sessie uitlezen, gezin
+// (organization) aanmaken/beheren. Dit spreekt Neon's managed auth-service
+// aan (ingesteld via Neon Console), geen zelfgehoste better-auth.
+export const authClient = createAuthClient()
