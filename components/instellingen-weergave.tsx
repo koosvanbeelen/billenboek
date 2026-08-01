@@ -14,6 +14,7 @@ import {
   Share,
   ArrowDownNarrowWide,
   ListChecks,
+  Users,
   ChevronRight,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -93,6 +94,23 @@ export function InstellingenWeergave({ versie }: { versie: string }) {
       <h1 className="font-heading text-xl font-semibold text-foreground">
         Instellingen
       </h1>
+
+      {/* Account en gezin (submenu) */}
+      <Link
+        href="/instellingen/account-en-gezin"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+      >
+        <Users className="size-5 text-primary" aria-hidden />
+        <div className="flex flex-1 flex-col">
+          <span className="text-base font-medium text-card-foreground">
+            Account en gezin
+          </span>
+          <span className="text-sm text-muted-foreground">
+            Gezinsleden, kinderen en uitloggen
+          </span>
+        </div>
+        <ChevronRight className="size-5 flex-none text-muted-foreground" aria-hidden />
+      </Link>
 
       {/* Formulieren en tellers (submenu) */}
       <Link

@@ -1,5 +1,7 @@
 "use server"
 
+import { asc, eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth/server"
 import { db } from "@/lib/db"
 import { kinderen } from "@/lib/db/schema"
@@ -20,4 +22,14 @@ export async function kindAanmaken(input: KindInput) {
     geboortedatum: d.geboortedatum || null,
     gezinId: gezinId,
   })
+  revalidatePath("/instellingen/account-en-gezin")
+}
+
+export async function kinderenOphalen() {
+  const gezinId = await getGezinId()
+  return db
+    .select()
+    .from(kinderen)
+    .where(eq(kinderen.gezinId, gezinId))
+    .orderBy(asc(kinderen.aangemaaktOp))
 }
