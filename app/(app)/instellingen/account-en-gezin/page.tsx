@@ -1,5 +1,5 @@
-import { GezinBeheerWeergave } from "@/components/gezin-beheer-weergave"
+import { GezinBeheerClientOnly } from "@/components/gezin-beheer-client-only"
 
 export default function AccountEnGezinPage() {
-  return <GezinBeheerWeergave />
+  return <GezinBeheerClientOnly />
 }
