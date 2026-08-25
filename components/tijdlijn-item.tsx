@@ -93,6 +93,7 @@ function opmerking(item: Item): string | null {
     case "medicatie":
     case "boertje":
     case "slapen":
+    case "luier":
       return item.record.notitie || null
     case "groei":
       return item.record.opmerking || null

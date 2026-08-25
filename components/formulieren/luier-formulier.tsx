@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 import { DatumTijdKiezer } from "@/components/datum-tijd-kiezer"
 import { voegLuierToe, werkLuierBij } from "@/app/actions/registraties"
@@ -28,6 +29,7 @@ export function LuierFormulier({ bestaand, onKlaar }: Props) {
     poep: bestaand?.poep ?? false,
     schoon: bestaand?.schoon ?? false,
   })
+  const [notitie, setNotitie] = useState(bestaand?.notitie ?? "")
   const [fout, setFout] = useState<string | null>(null)
 
   function wissel(sleutel: keyof typeof staat, aan: boolean) {
@@ -42,7 +44,7 @@ export function LuierFormulier({ bestaand, onKlaar }: Props) {
     setBezig(true)
     setFout(null)
     try {
-      const input = { datumTijd, ...staat }
+      const input = { datumTijd, ...staat, notitie: notitie.trim() || undefined }
       if (bestaand) await werkLuierBij(bestaand.id, input)
       else await voegLuierToe(input)
       toast.success(bestaand ? "Luier bijgewerkt" : "Luier opgeslagen")
@@ -75,6 +77,17 @@ export function LuierFormulier({ bestaand, onKlaar }: Props) {
       </Field>
 
       <DatumTijdKiezer waarde={datumTijd} onChange={setDatumTijd} />
+
+      <Field>
+        <FieldLabel htmlFor="notitie">Notitie (optioneel)</FieldLabel>
+        <Textarea
+          id="notitie"
+          value={notitie}
+          onChange={(e) => setNotitie(e.target.value)}
+          placeholder="Bijzonderheden..."
+          rows={2}
+        />
+      </Field>
 
       {fout && <FieldError>{fout}</FieldError>}
 

@@ -135,6 +135,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
         plas: r.plas,
         poep: r.poep,
         schoon: r.schoon,
+        notitie: r.notitie,
       } satisfies LuierItem,
     })
   }
@@ -320,6 +321,7 @@ export async function voegLuierToe(input: LuierInput) {
     plas: d.plas,
     poep: d.poep,
     schoon: d.schoon,
+    notitie: d.notitie || null,
   })
   herlaad()
 }
@@ -333,6 +335,7 @@ export async function werkLuierBij(id: number, input: LuierInput) {
       plas: d.plas,
       poep: d.poep,
       schoon: d.schoon,
+      notitie: d.notitie || null,
       bijgewerktOp: new Date(),
     })
     .where(eq(luiers.id, id))

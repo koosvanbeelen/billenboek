@@ -27,6 +27,7 @@ export type LuierItem = {
   plas: boolean
   poep: boolean
   schoon: boolean
+  notitie: string | null
 }
 
 export type TemperatuurItem = {

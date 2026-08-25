@@ -32,6 +32,7 @@ export const luiers = pgTable("luiers", {
   plas: boolean("plas").notNull().default(false),
   poep: boolean("poep").notNull().default(false),
   schoon: boolean("schoon").notNull().default(false),
+  notitie: text("notitie"),
   aangemaaktOp: timestamp("aangemaakt_op", { withTimezone: true })
     .notNull()
     .defaultNow(),
