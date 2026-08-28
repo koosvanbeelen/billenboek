@@ -25,7 +25,7 @@ function borstvoedingLabel(borst: VoedingItem["borst"]): string {
   }
 }
 
-function samenvatting(item: Item): React.ReactNode {
+export function samenvatting(item: Item): React.ReactNode {
   switch (item.soort) {
     case "voeding": {
       const r = item.record
@@ -87,7 +87,7 @@ function samenvatting(item: Item): React.ReactNode {
 
 // De optionele opmerking staat, indien aanwezig, altijd op een eigen regel
 // onder de rest van de kaart (niet afgekapt, mag meerdere regels beslaan).
-function opmerking(item: Item): string | null {
+export function opmerking(item: Item): string | null {
   switch (item.soort) {
     case "voeding":
     case "medicatie":

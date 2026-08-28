@@ -1,6 +1,6 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
+import { Loader2, Share2, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { useDeelKaart } from "@/hooks/use-deel-kaart"
 import { VoedingFormulier } from "@/components/formulieren/voeding-formulier"
 import { LuierFormulier } from "@/components/formulieren/luier-formulier"
 import { TemperatuurFormulier } from "@/components/formulieren/temperatuur-formulier"
@@ -87,12 +88,13 @@ export function RegistratieDialog({
   onVerwijder: () => void
 }) {
   const open = bewerking !== null
+  const { deel, bezig } = useDeelKaart()
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       {bewerking && (
         <DialogContent className="top-auto bottom-0 left-1/2 max-h-[90dvh] w-full max-w-md translate-y-0 overflow-y-auto rounded-b-none rounded-t-3xl pb-safe sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl data-open:sm:zoom-in-95">
-          <DialogHeader className="flex-row items-start justify-between gap-2 pr-8 text-left">
+          <DialogHeader className="flex-row items-start justify-between gap-2 pr-6 text-left">
             <div className="min-w-0">
               <DialogTitle className="text-lg">
                 {bewerking.record ? "Bewerk " : "Nieuwe "}
@@ -102,27 +104,52 @@ export function RegistratieDialog({
                 Formulier om een {titels[bewerking.soort].toLowerCase()} registratie op te slaan
               </DialogDescription>
             </div>
-            {(bewerking.record || heeftTimerMeting(bewerking)) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => {
-                  if (bewerking.record) {
-                    onVerwijder()
-                    return
+            <div className="flex flex-none items-center gap-1">
+              {bewerking.record && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={bezig}
+                  onClick={() =>
+                    deel({
+                      soort: bewerking.soort,
+                      id: bewerking.record!.id,
+                      datumTijd: bewerking.record!.datumTijd,
+                      record: bewerking.record,
+                    } as Parameters<typeof deel>[0])
                   }
-                  if (bewerking.soort === "slapen" || bewerking.soort === "huilen") {
-                    bewerking.wisTimer?.()
-                  }
-                  onClose()
-                }}
-                aria-label={bewerking.record ? "Verwijderen" : "Meting verwijderen"}
-                className="flex-none text-destructive hover:text-destructive"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            )}
+                  aria-label="Delen"
+                >
+                  {bezig ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Share2 className="size-4" />
+                  )}
+                </Button>
+              )}
+              {(bewerking.record || heeftTimerMeting(bewerking)) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => {
+                    if (bewerking.record) {
+                      onVerwijder()
+                      return
+                    }
+                    if (bewerking.soort === "slapen" || bewerking.soort === "huilen") {
+                      bewerking.wisTimer?.()
+                    }
+                    onClose()
+                  }}
+                  aria-label={bewerking.record ? "Verwijderen" : "Meting verwijderen"}
+                  className="flex-none text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {bewerking.soort === "voeding" && (
