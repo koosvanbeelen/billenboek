@@ -106,15 +106,23 @@ export function DeelbareKaart({ item }: { item: Item }) {
         className="mt-4 flex items-center justify-between pt-3"
         style={{ borderTop: `1px solid ${KLEUR.kaartRand}` }}
       >
-        <span className="flex size-5 items-center justify-center overflow-hidden rounded-md">
-          <Image
-            src="/icons/icon-192.png"
-            alt=""
-            width={20}
-            height={20}
-            className="size-5 object-cover"
-          />
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="flex size-[22px] flex-none items-center justify-center overflow-hidden rounded-[6px] opacity-60 grayscale">
+            <Image
+              src="/icons/icon-192.png"
+              alt=""
+              width={22}
+              height={22}
+              className="size-[22px] object-cover"
+            />
+          </span>
+          <span
+            className="text-xs font-medium tracking-wide"
+            style={{ color: KLEUR.tekstGedempt }}
+          >
+            Billenboek
+          </span>
+        </div>
         <span className="text-xs" style={{ color: KLEUR.tekstGedempt }}>
           {formatDatumLang(datum)}
         </span>
