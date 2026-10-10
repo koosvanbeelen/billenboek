@@ -75,10 +75,6 @@ export function AppInfoWeergave({ info }: { info: AppInfo }) {
         </dl>
       </section>
 
-      <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-        <CheckCircle2 className="size-4 flex-none" aria-hidden />
-        Deze informatie is alleen-lezen.
-      </div>
     </div>
   )
 }
