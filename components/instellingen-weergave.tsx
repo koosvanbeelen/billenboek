@@ -75,7 +75,7 @@ export function InstellingenWeergave() {
         <div className="flex flex-1 flex-col">
           <span className="text-base font-medium text-card-foreground">Account</span>
           <span className="text-sm text-muted-foreground">
-            Naam, wachtwoord en account verwijderen
+            Naam, wachtwoord, uitloggen en account verwijderen
           </span>
         </div>
         <ChevronRight className="size-5 flex-none text-muted-foreground" aria-hidden />
@@ -107,7 +107,7 @@ export function InstellingenWeergave() {
         <div className="flex flex-1 flex-col">
           <span className="text-base font-medium text-card-foreground">App-info</span>
           <span className="text-sm text-muted-foreground">
-            Versie, databaseverbinding en technische IDs
+            Versie, databaseverbinding en technische ID's
           </span>
         </div>
         <ChevronRight className="size-5 flex-none text-muted-foreground" aria-hidden />
@@ -123,7 +123,7 @@ export function InstellingenWeergave() {
                 Nieuwste eerst
               </span>
               <span className="text-sm text-muted-foreground">
-                Bepaalt de volgorde van de tijdlijn in Vandaag en Geschiedenis
+                Bepaal de volgorde van je tijdlijn
               </span>
             </div>
           </div>
