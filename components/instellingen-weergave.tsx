@@ -14,14 +14,12 @@ import {
   ChevronRight,
   UserRound,
   UsersRound,
-  LogOut,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { usePwaInstall } from "@/components/pwa-install-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
-import { uitloggen } from "@/app/actions/auth"
 export function InstellingenWeergave() {
   // Voorkomt een hydration-mismatch: het thema is pas na mount bekend.
   const [mounted, setMounted] = useState(false)
@@ -209,13 +207,6 @@ export function InstellingenWeergave() {
         )}
 
       </section>
-
-      <form action={uitloggen} className="order-8">
-        <Button type="submit" variant="outline" className="h-12 w-full text-base">
-          <LogOut data-icon="inline-start" aria-hidden />
-          Uitloggen
-        </Button>
-      </form>
 
     </div>
   )
