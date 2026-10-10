@@ -36,8 +36,7 @@ export const ALLE_TELLERS: TellerId[] = [
 
 export const MAX_TELLERS = 4
 
-// Standaard: dezelfde 4 tellers die de app altijd al toonde, zodat een
-// bestaande gebruiker na deze update niets ziet veranderen.
+// Standaard worden alleen voeding, luiers en temperatuur getoond.
 export const STANDAARD_TELLERS: TellerId[] = [
   "voedingenAantal",
   "totaalLuiers",
