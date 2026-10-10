@@ -16,6 +16,7 @@ import {
   ListChecks,
   ChevronRight,
   UserRound,
+  UsersRound,
   LogOut,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -31,13 +32,10 @@ import {
 } from "@/lib/tijdlijn-voorkeur"
 import { resetZichtbareFormulieren } from "@/lib/formulier-voorkeur"
 import { resetZichtbareTellers } from "@/lib/teller-voorkeur"
-import { GezinKaart } from "@/components/gezin-kaart"
 import { uitloggen } from "@/app/actions/auth"
-import type { Gezinsgegevens } from "@/app/actions/gezinnen"
-
 type DbStatus = { ok: boolean; bericht: string }
 
-export function InstellingenWeergave({ versie, gezinsgegevens }: { versie: string; gezinsgegevens: Gezinsgegevens }) {
+export function InstellingenWeergave({ versie }: { versie: string }) {
   // Voorkomt een hydration-mismatch: het thema is pas na mount bekend.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -99,7 +97,20 @@ export function InstellingenWeergave({ versie, gezinsgegevens }: { versie: strin
         Instellingen
       </h1>
 
-      <GezinKaart gezinsgegevens={gezinsgegevens} />
+      {/* Gezin (submenu) */}
+      <Link
+        href="/instellingen/gezin"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+      >
+        <UsersRound className="size-5 text-primary" aria-hidden />
+        <div className="flex flex-1 flex-col">
+          <span className="text-base font-medium text-card-foreground">Gezin</span>
+          <span className="text-sm text-muted-foreground">
+            Leden en uitnodigingslink beheren
+          </span>
+        </div>
+        <ChevronRight className="size-5 flex-none text-muted-foreground" aria-hidden />
+      </Link>
 
       {/* Account (submenu) */}
       <Link
