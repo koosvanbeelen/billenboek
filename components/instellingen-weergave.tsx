@@ -56,7 +56,7 @@ export function InstellingenWeergave() {
       {/* Gezin (submenu) */}
       <Link
         href="/instellingen/gezin"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+        className="order-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
       >
         <UsersRound className="size-5 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
@@ -71,7 +71,7 @@ export function InstellingenWeergave() {
       {/* Account (submenu) */}
       <Link
         href="/instellingen/account"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+        className="order-1 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
       >
         <UserRound className="size-5 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
@@ -86,7 +86,7 @@ export function InstellingenWeergave() {
       {/* Formulieren en tellers (submenu) */}
       <Link
         href="/instellingen/formulieren-en-tellers"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+        className="order-3 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
       >
         <ListChecks className="size-5 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
@@ -103,7 +103,7 @@ export function InstellingenWeergave() {
       {/* App-info (submenu) */}
       <Link
         href="/instellingen/app-info"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+        className="order-7 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
       >
         <Info className="size-5 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
@@ -116,7 +116,7 @@ export function InstellingenWeergave() {
       </Link>
 
       {/* Tijdlijn */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+      <section className="order-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <ArrowDownNarrowWide className="size-5 text-primary" aria-hidden />
@@ -144,7 +144,7 @@ export function InstellingenWeergave() {
       </section>
 
       {/* Weergave */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+      <section className="order-5 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Moon className="size-5 text-primary" aria-hidden />
@@ -172,7 +172,7 @@ export function InstellingenWeergave() {
       </section>
 
       {/* App installeren */}
-      <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+      <section className="order-6 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center gap-3">
           <Smartphone className="size-5 text-primary" aria-hidden />
           <div className="flex flex-col">
@@ -210,7 +210,7 @@ export function InstellingenWeergave() {
 
       </section>
 
-      <form action={uitloggen}>
+      <form action={uitloggen} className="order-8">
         <Button type="submit" variant="outline" className="h-12 w-full text-base">
           <LogOut data-icon="inline-start" aria-hidden />
           Uitloggen
