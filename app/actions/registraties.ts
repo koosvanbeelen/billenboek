@@ -42,6 +42,7 @@ import {
   type VitamineInput,
   type VoedingInput,
 } from "@/lib/validations"
+import { dbFout, parseInvoer } from "@/lib/fouten"
 
 function herlaad() {
   revalidatePath("/")
@@ -59,19 +60,19 @@ async function getOwnedClient() {
 async function insertOwn(table: string, values: Record<string, unknown>) {
   const { supabase, user, gezinId } = await getOwnedClient()
   const { error } = await supabase.from(tableName(table)).insert({ ...toDbRow(tableName(table), values), user_id: user.id, gezin_id: gezinId })
-  if (error) throw error
+  if (error) throw dbFout("registraties", error)
 }
 
 async function updateOwn(table: string, id: number, values: Record<string, unknown>) {
   const { supabase, gezinId } = await getOwnedClient()
   const { error } = await supabase.from(tableName(table)).update(toDbRow(tableName(table), values)).eq("id", id).eq("gezin_id", gezinId)
-  if (error) throw error
+  if (error) throw dbFout("registraties", error)
 }
 
 async function deleteOwn(table: string, id: number) {
   const { supabase, gezinId } = await getOwnedClient()
   const { error } = await supabase.from(tableName(table)).delete().eq("id", id).eq("gezin_id", gezinId)
-  if (error) throw error
+  if (error) throw dbFout("registraties", error)
 }
 
 const iso = (d: Date | string) => new Date(d).toISOString()
@@ -93,7 +94,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
       .eq("gezin_id", gezinId)
       .gte(timeColumn(table), van.toISOString())
       .lte(timeColumn(table), tot.toISOString())
-    if (error) throw error
+    if (error) throw dbFout("registraties", error)
     return (data ?? []).map((row) => fromDbRow(tableName(table), row))
   }
 
@@ -115,7 +116,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
       .eq("gezin_id", gezinId)
       .order("datum_tijd", { ascending: false })
       .limit(1)
-    if (error) throw error
+    if (error) throw dbFout("registraties", error)
     return data ?? []
   }
   const laatsteVoedingRij = await historyQuery("voedingen")
@@ -291,7 +292,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
 // Voeding
 // ---------------------------------------------------------------------------
 export async function voegVoedingToe(input: VoedingInput) {
-  const d = voedingSchema.parse(input)
+  const d = parseInvoer(voedingSchema, input, "registraties")
   await insertOwn("voedingen", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     type: d.type,
@@ -304,7 +305,7 @@ export async function voegVoedingToe(input: VoedingInput) {
 }
 
 export async function werkVoedingBij(id: number, input: VoedingInput) {
-  const d = voedingSchema.parse(input)
+  const d = parseInvoer(voedingSchema, input, "registraties")
   await updateOwn("voedingen", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     type: d.type,
@@ -326,7 +327,7 @@ export async function verwijderVoeding(id: number) {
 // Luier
 // ---------------------------------------------------------------------------
 export async function voegLuierToe(input: LuierInput) {
-  const d = luierSchema.parse(input)
+  const d = parseInvoer(luierSchema, input, "registraties")
   await insertOwn("luiers", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     plas: d.plas,
@@ -337,7 +338,7 @@ export async function voegLuierToe(input: LuierInput) {
 }
 
 export async function werkLuierBij(id: number, input: LuierInput) {
-  const d = luierSchema.parse(input)
+  const d = parseInvoer(luierSchema, input, "registraties")
   await updateOwn("luiers", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     plas: d.plas,
@@ -357,7 +358,7 @@ export async function verwijderLuier(id: number) {
 // Temperatuur
 // ---------------------------------------------------------------------------
 export async function voegTemperatuurToe(input: TemperatuurInput) {
-  const d = temperatuurSchema.parse(input)
+  const d = parseInvoer(temperatuurSchema, input, "registraties")
   await insertOwn("temperaturen", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     temperatuur: d.temperatuur.toFixed(1),
@@ -366,7 +367,7 @@ export async function voegTemperatuurToe(input: TemperatuurInput) {
 }
 
 export async function werkTemperatuurBij(id: number, input: TemperatuurInput) {
-  const d = temperatuurSchema.parse(input)
+  const d = parseInvoer(temperatuurSchema, input, "registraties")
   await updateOwn("temperaturen", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     temperatuur: d.temperatuur.toFixed(1),
@@ -384,7 +385,7 @@ export async function verwijderTemperatuur(id: number) {
 // Boertje / Spugen
 // ---------------------------------------------------------------------------
 export async function voegBoertjeToe(input: BoertjeInput) {
-  const d = boertjeSchema.parse(input)
+  const d = parseInvoer(boertjeSchema, input, "registraties")
   await insertOwn("boertjesSpugen", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     notitie: d.notitie || null,
@@ -393,7 +394,7 @@ export async function voegBoertjeToe(input: BoertjeInput) {
 }
 
 export async function werkBoertjeBij(id: number, input: BoertjeInput) {
-  const d = boertjeSchema.parse(input)
+  const d = parseInvoer(boertjeSchema, input, "registraties")
   await updateOwn("boertjesSpugen", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     notitie: d.notitie || null,
@@ -419,7 +420,7 @@ export async function werkSpugenBij(id: number, input: BoertjeInput) {
 // Vitamines
 // ---------------------------------------------------------------------------
 export async function voegVitamineToe(input: VitamineInput) {
-  const d = vitamineSchema.parse(input)
+  const d = parseInvoer(vitamineSchema, input, "registraties")
   await insertOwn("vitamines", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     vitamineK: d.vitamineK,
@@ -429,7 +430,7 @@ export async function voegVitamineToe(input: VitamineInput) {
 }
 
 export async function werkVitamineBij(id: number, input: VitamineInput) {
-  const d = vitamineSchema.parse(input)
+  const d = parseInvoer(vitamineSchema, input, "registraties")
   await updateOwn("vitamines", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     vitamineK: d.vitamineK,
@@ -448,7 +449,7 @@ export async function verwijderVitamine(id: number) {
 // Medicatie
 // ---------------------------------------------------------------------------
 export async function voegMedicatieToe(input: MedicatieInput) {
-  const d = medicatieSchema.parse(input)
+  const d = parseInvoer(medicatieSchema, input, "registraties")
   await insertOwn("medicatie", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     naam: d.naam,
@@ -459,7 +460,7 @@ export async function voegMedicatieToe(input: MedicatieInput) {
 }
 
 export async function werkMedicatieBij(id: number, input: MedicatieInput) {
-  const d = medicatieSchema.parse(input)
+  const d = parseInvoer(medicatieSchema, input, "registraties")
   await updateOwn("medicatie", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     naam: d.naam,
@@ -479,7 +480,7 @@ export async function verwijderMedicatie(id: number) {
 // Groei
 // ---------------------------------------------------------------------------
 export async function voegGroeiToe(input: GroeiInput) {
-  const d = groeiSchema.parse(input)
+  const d = parseInvoer(groeiSchema, input, "registraties")
   await insertOwn("groei", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
@@ -490,7 +491,7 @@ export async function voegGroeiToe(input: GroeiInput) {
 }
 
 export async function werkGroeiBij(id: number, input: GroeiInput) {
-  const d = groeiSchema.parse(input)
+  const d = parseInvoer(groeiSchema, input, "registraties")
   await updateOwn("groei", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
@@ -510,7 +511,7 @@ export async function verwijderGroei(id: number) {
 // Slapen
 // ---------------------------------------------------------------------------
 export async function voegSlaapToe(input: SlaapInput) {
-  const d = slaapSchema.parse(input)
+  const d = parseInvoer(slaapSchema, input, "registraties")
   await insertOwn("slapen", {
     start: inputNaarDatum(d.start).toISOString(),
     einde: inputNaarDatum(d.einde).toISOString(),
@@ -522,7 +523,7 @@ export async function voegSlaapToe(input: SlaapInput) {
 }
 
 export async function werkSlaapBij(id: number, input: SlaapInput) {
-  const d = slaapSchema.parse(input)
+  const d = parseInvoer(slaapSchema, input, "registraties")
   await updateOwn("slapen", id, {
     start: inputNaarDatum(d.start).toISOString(),
     einde: inputNaarDatum(d.einde).toISOString(),
@@ -543,7 +544,7 @@ export async function verwijderSlaap(id: number) {
 // Huilen
 // ---------------------------------------------------------------------------
 export async function voegHuilToe(input: HuilInput) {
-  const d = huilSchema.parse(input)
+  const d = parseInvoer(huilSchema, input, "registraties")
   await insertOwn("huilen", {
     start: inputNaarDatum(d.start).toISOString(),
     einde: inputNaarDatum(d.einde).toISOString(),
@@ -555,7 +556,7 @@ export async function voegHuilToe(input: HuilInput) {
 }
 
 export async function werkHuilBij(id: number, input: HuilInput) {
-  const d = huilSchema.parse(input)
+  const d = parseInvoer(huilSchema, input, "registraties")
   await updateOwn("huilen", id, {
     start: inputNaarDatum(d.start).toISOString(),
     einde: inputNaarDatum(d.einde).toISOString(),
@@ -576,7 +577,7 @@ export async function verwijderHuil(id: number) {
 // Kolven
 // ---------------------------------------------------------------------------
 export async function voegKolfToe(input: KolfInput) {
-  const d = kolfSchema.parse(input)
+  const d = parseInvoer(kolfSchema, input, "registraties")
   await insertOwn("kolven", {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     borst: d.borst,
@@ -587,7 +588,7 @@ export async function voegKolfToe(input: KolfInput) {
 }
 
 export async function werkKolfBij(id: number, input: KolfInput) {
-  const d = kolfSchema.parse(input)
+  const d = parseInvoer(kolfSchema, input, "registraties")
   await updateOwn("kolven", id, {
     datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
     borst: d.borst,

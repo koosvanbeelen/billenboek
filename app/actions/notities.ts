@@ -7,6 +7,7 @@ import { toggleCheckboxRegel } from "@/lib/notitie-opmaak"
 import type { NotitieItem } from "@/lib/types"
 import { notitieSchema } from "@/lib/validations"
 import { notitieFromDb, notitieToDb } from "@/lib/db/mappers"
+import { dbFout, parseInvoer } from "@/lib/fouten"
 
 async function getUserScopedClient() {
   const supabase = await createClient()
@@ -27,7 +28,7 @@ export async function getNotities(): Promise<NotitieItem[]> {
 }
 
 export async function voegNotitieToe(input: { notitie: string }) {
-  const d = notitieSchema.parse(input)
+  const d = parseInvoer(notitieSchema, input, "notities")
   const { supabase, user, gezinId } = await getUserScopedClient()
   const { error } = await supabase.from("notities").insert({
     ...notitieToDb({ notitie: d.notitie }),
@@ -39,7 +40,7 @@ export async function voegNotitieToe(input: { notitie: string }) {
 }
 
 export async function werkNotitieBij(id: number, input: { notitie: string }) {
-  const d = notitieSchema.parse(input)
+  const d = parseInvoer(notitieSchema, input, "notities")
   const { supabase, user, gezinId } = await getUserScopedClient()
   const { error } = await supabase
     .from("notities")

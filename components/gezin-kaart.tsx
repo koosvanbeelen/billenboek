@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Copy, Link2, MessageCircle, Share2, UserPlus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Ban, Check, Copy, Link2, MessageCircle, Share2, UserMinus, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { maakNieuweUitnodiging, type Gezinsgegevens } from "@/app/actions/gezinnen"
+import { BevestigDialog } from "@/components/bevestig-dialog"
+import { maakNieuweUitnodiging, trekUitnodigingIn, verwijderGezinslid, type Gezinsgegevens, type GezinsLid } from "@/app/actions/gezinnen"
 
 const ROL_LABEL: Record<string, string> = { eigenaar: "Eigenaar", lid: "Lid" }
 
@@ -13,7 +15,12 @@ function datumKort(iso: string) {
 }
 
 export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens }) {
-  const [uitnodiging, setUitnodiging] = useState(gezinsgegevens.actieveCode)
+  const router = useRouter()
+  const [uitnodiging, setUitnodiging] = useState<{ code: string; vervaltOp: string } | null>(
+    gezinsgegevens.actieveCode ? { code: gezinsgegevens.actieveCode.code, vervaltOp: gezinsgegevens.actieveCode.vervalt_op } : null,
+  )
+  const [lidVerwijderen, setLidVerwijderen] = useState<GezinsLid | null>(null)
+  const [intrekOpen, setIntrekOpen] = useState(false)
   const [bezig, setBezig] = useState(false)
   const [gekopieerd, setGekopieerd] = useState(false)
   const [origin, setOrigin] = useState("")
@@ -32,12 +39,44 @@ export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens 
   async function nieuweCode() {
     setBezig(true)
     try {
-      setUitnodiging(await maakNieuweUitnodiging())
+      const r = await maakNieuweUitnodiging()
+      if (!r.ok) return toast.error(r.fout)
+      setUitnodiging({ code: r.code, vervaltOp: r.vervaltOp })
       setGekopieerd(false)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Nieuwe code aanmaken lukt niet.")
+      toast.success("Nieuwe code gemaakt. De vorige code werkt niet meer.")
+    } catch {
+      toast.error("Nieuwe code aanmaken lukt niet. Probeer het opnieuw.")
     } finally {
       setBezig(false)
+    }
+  }
+
+  async function intrekken() {
+    setIntrekOpen(false)
+    setBezig(true)
+    try {
+      const r = await trekUitnodigingIn()
+      if (!r.ok) return toast.error(r.fout)
+      setUitnodiging(null)
+      toast.success("Code ingetrokken")
+    } catch {
+      toast.error("Intrekken lukt niet. Probeer het opnieuw.")
+    } finally {
+      setBezig(false)
+    }
+  }
+
+  async function lidVerwijderBevestigd() {
+    const lid = lidVerwijderen
+    setLidVerwijderen(null)
+    if (!lid) return
+    try {
+      const r = await verwijderGezinslid(lid.user_id)
+      if (!r.ok) return toast.error(r.fout)
+      toast.success(`${lid.naam ?? "Gezinslid"} is uit het gezin verwijderd`)
+      router.refresh()
+    } catch {
+      toast.error("Verwijderen lukt niet. Probeer het opnieuw.")
     }
   }
 
@@ -81,6 +120,11 @@ export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens 
                 </span>
                 <span className="text-sm text-muted-foreground">{ROL_LABEL[lid.rol] ?? lid.rol}</span>
               </div>
+              {gezinsgegevens.ikBenEigenaar && !lid.ben_ik ? (
+                <Button variant="ghost" size="icon-lg" className="size-12 flex-none text-muted-foreground" onClick={() => setLidVerwijderen(lid)} aria-label={`${naam} uit het gezin verwijderen`}>
+                  <UserMinus className="size-5" aria-hidden />
+                </Button>
+              ) : null}
             </li>
           )
         })}
@@ -96,7 +140,7 @@ export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens 
           <>
             <div className="flex items-center justify-between gap-3 rounded-lg bg-background px-3 py-2">
               <span className="font-mono text-lg tracking-widest text-foreground" aria-label="Uitnodigingscode">{uitnodiging.code}</span>
-              <span className="text-xs text-muted-foreground">geldig t/m {datumKort(uitnodiging.vervalt_op)}</span>
+              <span className="text-xs text-muted-foreground">geldig t/m {datumKort(uitnodiging.vervaltOp)}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -122,11 +166,18 @@ export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens 
 
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <Link2 className="mt-0.5 size-3.5 flex-none" aria-hidden />
-              Wie de link opent, maakt een account en sluit meteen aan bij {gezinNaam}. Of vul de code in tijdens het aanmelden.
+              Iedereen met deze link of code kan 7 dagen lang aansluiten bij {gezinNaam}, ook meerdere mensen. Deel hem dus alleen met mensen die je vertrouwt.
             </p>
-            <Button variant="ghost" className="h-12" onClick={nieuweCode} disabled={bezig}>
-              {bezig ? "Bezig..." : "Nieuwe code maken"}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="ghost" className="h-12" onClick={nieuweCode} disabled={bezig}>
+                {bezig ? "Bezig..." : "Nieuwe code"}
+              </Button>
+              {gezinsgegevens.ikBenEigenaar ? (
+                <Button variant="ghost" className="h-12 text-destructive" onClick={() => setIntrekOpen(true)} disabled={bezig}>
+                  <Ban data-icon="inline-start" aria-hidden />Intrekken
+                </Button>
+              ) : null}
+            </div>
           </>
         ) : (
           <>
@@ -137,6 +188,21 @@ export function GezinKaart({ gezinsgegevens }: { gezinsgegevens: Gezinsgegevens 
           </>
         )}
       </div>
+      <BevestigDialog
+        open={intrekOpen}
+        onOpenChange={setIntrekOpen}
+        titel="Code intrekken?"
+        beschrijving="De huidige code en link werken daarna niet meer. Wie al lid is, blijft lid."
+        bevestigLabel="Intrekken"
+        onBevestig={intrekken}
+      />
+      <BevestigDialog
+        open={lidVerwijderen !== null}
+        onOpenChange={(open) => { if (!open) setLidVerwijderen(null) }}
+        titel={`${lidVerwijderen?.naam ?? "Dit gezinslid"} verwijderen?`}
+        beschrijving="Deze persoon heeft daarna geen toegang meer tot jullie gegevens. De registraties blijven bij het gezin bewaard."
+        onBevestig={lidVerwijderBevestigd}
+      />
     </section>
   )
 }

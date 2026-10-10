@@ -1,22 +1,12 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { requireSupabaseEnv } from "@/lib/supabase/env"
 
 export async function createClient() {
   const cookieStore = await cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.SUPABASE_ANON_KEY
+  const { url, key } = requireSupabaseEnv()
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase runtime configuration is missing")
-  }
-
-  return createServerClient(
-    supabaseUrl,
-    supabaseKey,
+  return createServerClient(url, key,
     {
       cookies: {
         getAll() {

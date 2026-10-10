@@ -1,73 +1,61 @@
-# Accountbeheer voor Billenboek (Supabase-fork)
+# Beveiliging van uitnodigingen en gezinnen (punt 1)
 
-Branch: `account-beheer` (niet op `main` zetten voordat je het hebt getest).
+Branch: `code-beveiliging` (gebouwd bovenop `account-beheer`).
 
-## Wat zit erin
+## Jouw regels, zo uitgevoerd
 
-| Onderdeel | Waar |
+| Regel | Uitvoering |
 |---|---|
-| Uitloggen | Instellingen (onderaan) en Instellingen → Account |
-| Wachtwoord vergeten | `/wachtwoord-vergeten` (link "Vergeten?" op het inlogscherm) → mail → `/wachtwoord-resetten` |
-| Wachtwoord wijzigen (ingelogd) | Instellingen → Account |
-| Account verwijderen | Instellingen → Account, bevestigen met wachtwoord |
-| Profiel / naam | Naam bij registratie, aanpasbaar in Instellingen → Account. Ledenlijst toont namen i.p.v. `user_id` |
-| Uitnodigen | Instellingen → Gezin: deelknop (iOS/Android deelmenu), WhatsApp, link kopiëren. De link `/gezin/deelnemen?code=…` stuurt nieuwe mensen naar registreren en daarna direct het gezin in |
+| Code 7 dagen geldig | Vervaldatum wordt in de database bepaald (client kan hem niet meer kiezen). Bestaande actieve codes die langer liepen, zijn ingekort tot maximaal 7 dagen. |
+| Rate limit 3 | **Mijn interpretatie:** maximaal 3 mislukte pogingen per gebruiker per 15 minuten. Daarna is joinen geblokkeerd tot de oudste poging uit het venster valt, ook met de goede code. De gebruiker ziet "Te veel mislukte pogingen. Probeer het over 15 minuten opnieuw." en tijdens het proberen "Je hebt nog 2 pogingen". Wil je een andere periode of een ander aantal: in de SQL staat `INSTELLING` bij `max_pogingen` en `venster` (en de 7 dagen). |
+| Onbeperkt gebruik | Een code mag door onbeperkt veel mensen worden gebruikt binnen de 7 dagen. |
+| 8 hex-tekens | Blijft zo (0-9, A-F). Hoofdletters, kleine letters en spaties om de code worden goed verwerkt. |
 
-## Volgorde van uitrollen (belangrijk)
+## Wat ik daarnaast heb gedaan (punt 1)
 
-### Stap 1: eerst de database
-Open Supabase → SQL Editor → plak de inhoud van
-`supabase/migrations/20261009120000_account_beheer.sql` → Run.
+1. **Code maken gebeurt alleen in de database.** Voorheen bedacht de app de code en de vervaldatum en kon elke ingelogde gebruiker via de API zelf een code met een willekeurige vervaldatum invoegen. Dat kan niet meer.
+2. **Direct schrijven op `gezinnen`, `gezin_leden` en `gezin_uitnodigingen` is dichtgezet** voor de API-rollen. De app leest die tabellen alleen. Wijzigingen lopen via de functies. Daardoor kan niemand zichzelf aan een gezin toevoegen of eigenaar maken, wat de RLS-policies ook toestaan (die kon ik niet inzien, zie het controlescript hieronder).
+3. **Eén actieve code per gezin.** Een nieuwe code maakt de vorige ongeldig. Dat is nodig omdat een code onbeperkt bruikbaar is: zo kun je een gelekte link vervangen.
+4. **Rollen.** Elk lid mag een nieuwe code maken (handig voor je partner). Alleen de **eigenaar** kan een code **intrekken** en een gezinslid **verwijderen**. In Instellingen verschijnen daarvoor knoppen. Verwijderde leden verliezen toegang, de registraties blijven bij het gezin.
+5. **Foutmeldingen zijn nu zichtbaar.** Gezin aanmaken en deelnemen gaven fouten via een gegooide `Error`; Next.js laat de tekst daarvan in productie weg, dus gebruikers zagen alleen een algemene fout. Nu geven de acties een resultaat terug (net als de accountacties).
+6. **Eén plek voor de Supabase-instellingen** (`lib/supabase/env.ts`, was 4x gekopieerd) en een `.env.example` (in `.gitignore` staat nu een uitzondering, anders had Git het bestand genegeerd).
+7. **Nettere foutafhandeling in de registratie- en notitieacties:** geen ruwe Zod- of Supabase-fouten meer, wel een logregel met context op de server (`lib/fouten.ts`).
+8. **`ignoreBuildErrors` staat uit** (`next.config.mjs`). Typefouten laten een deploy nu mislukken in plaats van stil door te glippen. `tsc --noEmit` slaagt. Faalt je Vercel-build toch op een typefout die ik niet zie, meld die dan (of zet het tijdelijk terug).
 
-Het script is idempotent (je mag het opnieuw draaien). Het maakt:
-- tabel `profielen` met RLS (gezinsleden zien elkaars naam, bewerken kan alleen je eigen naam)
-- een trigger die bij registratie een profiel aanmaakt
-- profielen voor bestaande gebruikers (naam = deel van het e-mailadres voor de @, later aan te passen)
-- de functie `verwijder_mijn_account()`
+## Uitrollen
 
-### Stap 2: de code
-**GitHub Desktop (aanbevolen):**
-1. Maak een branch `account-beheer` vanaf `main`.
-2. Pak `billenboek-account-beheer.zip` uit over je lokale map heen (mappen blijven behouden, ook `app/(app)/`).
-   Of: `git apply account-beheer.patch`.
-3. `pnpm install` is niet nodig (geen nieuwe pakketten).
-4. Commit en push de branch. Vercel maakt een preview-deployment.
+### Stap 1: SQL (Supabase → SQL Editor)
+Draai `supabase/migrations/20261009130000_uitnodigingen_beveiliging.sql`.
+Heb je `20261009120000_account_beheer.sql` nog niet gedraaid? Eerst die, daarna deze.
 
-**Let op bij v0:** v0 verwijdert bij een zip-upload bestanden die niet in de zip zitten. Gebruik v0 daarom niet voor deze upload; werk via GitHub en laat v0 daarna de branch synchroniseren.
+Maak voor de zekerheid eerst een back-up (Database → Backups).
 
-### Stap 3: Supabase-instellingen
-1. Authentication → URL Configuration: controleer dat **Site URL** je productiedomein is en dat `https://<jouw-domein>/auth/callback` bij **Redirect URLs** staat (voor preview-deployments een wildcard zoals `https://*-<team>.vercel.app/**`).
-2. **Aanbevolen voor de geïnstalleerde app:** Authentication → Email Templates → *Reset Password*. Vervang de link door:
-   ```
-   <a href="{{ .SiteURL }}/auth/bevestigen?token_hash={{ .TokenHash }}&type=recovery&next=/wachtwoord-resetten">Kies een nieuw wachtwoord</a>
-   ```
-   Waarom: de standaardlink werkt alleen als je hem opent in dezelfde browser als waar je de aanvraag deed. Een mail-app opent links in Safari/Chrome, niet in de geïnstalleerde PWA. Met de `token_hash`-link werkt het altijd. Zonder deze aanpassing blijft de standaardlink werken (met `?code=`), maar dan kan het mislukken vanuit de PWA; de app toont dan "link verlopen" en laat je een nieuwe aanvragen.
-3. Mail-limieten: de ingebouwde Supabase-mailserver heeft een lage limiet en stuurt alleen naar teamleden. Voor wachtwoordherstel bij echte gebruikers is een eigen SMTP (bijv. Resend) nodig onder Project Settings → Authentication → SMTP.
+### Stap 2: code direct daarna deployen
+De SQL vervangt `create_family_with_invite` en `join_family_with_code` door nieuwe versies. Tussen het draaien van de SQL en het live gaan van de nieuwe code werken "gezin aanmaken" en "deelnemen" niet. Voor jullie twee is dat een kwestie van minuten, doe het dus even achter elkaar.
 
-## Gedrag bij account verwijderen
-- Je moet je wachtwoord opnieuw invullen.
-- **Er zijn nog andere gezinsleden:** je verlaat het gezin, de registraties blijven bewaard en worden toegewezen aan het langst aangesloten lid. Was je eigenaar, dan wordt dat lid eigenaar.
-- **Je bent het enige lid:** het hele gezin met alle registraties en notities wordt definitief verwijderd.
-- Alles gebeurt in één transactie. Lukt iets niet (bijv. een tabel die ik niet kan zien verwijst nog naar je account), dan wordt er niets verwijderd en zie je een foutmelding.
-- De verwijdering draait via een `security definer`-functie. Er is **geen** service-role-sleutel in de app nodig.
+### Stap 3: toepassen
+- **Je hebt `account-beheer` al toegepast:** `git apply beveiliging.patch` op die branch (maak een nieuwe branch `code-beveiliging`).
+- **Anders:** pak `billenboek-cumulatief.zip` uit over een branch vanaf `main`. Die bevat alles sinds `main`: accountbeheer, de datumfix en deze stap. In de terminal: `unzip -o billenboek-cumulatief.zip`.
+- Niet in v0 uploaden (v0 verwijdert bestanden die niet in een zip zitten).
 
-## Testlijst (op de preview, met een testaccount)
-1. Registreren met naam → mail → bevestigen → gezin aanmaken → naam staat in Instellingen.
-2. Uitloggen → inloggen.
-3. "Vergeten?" → mail → link → nieuw wachtwoord → je bent ingelogd. Open de link een tweede keer: je krijgt "link verlopen".
-4. Instellingen → Account: naam wijzigen, wachtwoord wijzigen (fout huidig wachtwoord geeft een melding).
-5. Uitnodigen via WhatsApp/deel/kopieer. Open de link in een privévenster → registreren → komt in het gezin terecht.
-6. Met een tweede testaccount in hetzelfde gezin: account verwijderen. Gegevens blijven zichtbaar voor het eerste account.
-7. Laatste testaccount verwijderen: het gezin is weg.
+### Stap 4: schema vastleggen (eenmalig, 2 minuten)
+Open `supabase/controle/schema-audit.sql`, plak hem in de SQL Editor, draai hem en stuur me de inhoud van de ene cel terug. Het script wijzigt niets en bevat geen gegevens, alleen structuur. Daarmee schrijf ik een basis-migratie die overeenkomt met je echte tabellen en policies, en controleer ik tegelijk de RLS (staat hij overal aan, is `FORCE` nodig, kan `anon` ergens bij).
 
-**Maak een back-up (Supabase → Database → Backups, of `pg_dump`) vóór je dit op productie met echte data uitprobeert.** Test het verwijderen alleen met testaccounts.
+## Testlijst (preview, testaccounts)
+1. Gezin aanmaken: je ziet een code met "7 dagen geldig".
+2. Tweede account: 3x een verkeerde code (bijv. `DEADBEEF`) → na de derde melding "Te veel mislukte pogingen". Probeer dan de goede code: ook geblokkeerd. Na 15 minuten werkt de goede code.
+3. Een code met te weinig tekens (`AB12`) telt niet mee als poging.
+4. Derde account gebruikt dezelfde code: werkt ook.
+5. Nieuwe code maken: de oude werkt niet meer.
+6. Als eigenaar: code intrekken, lid verwijderen. Als gewoon lid: die knoppen zijn er niet.
+7. Verwijderd lid opent de app: komt bij "Koppel je Billenboek aan een gezin" uit.
 
-## Bewust niet veranderd (volgende stappen)
-- Uitnodigingscodes zijn nog 8 tekens, 30 dagen geldig en meermalig bruikbaar (zoals na de laatste hardening-migratie). Aanscherping (eenmalig, langer, rate limit) is een eigen stap.
-- Leden verwijderen of eigenaarschap overdragen vanuit de app kan nog niet.
-- E-mailadres wijzigen kan nog niet.
+## Bewust anders of niet gedaan
+- De rate limit geldt per account. Wie veel accounts aanmaakt kan blijven gokken, maar bij 8 hex-tekens (circa 4,3 miljard mogelijkheden) en 3 pogingen per account per 15 minuten is dat niet haalbaar. Houd e-mailbevestiging aan bij Supabase om massaal accounts maken te remmen.
+- Gezin hernoemen kan nog niet (de schrijfrechten zijn dicht). Dat komt later via een eigen functie.
+- De kolommen `gebruikt_op` en `gebruikt_door` in `gezin_uitnodigingen` worden niet meer gebruikt (codes zijn onbeperkt bruikbaar). Ik heb ze laten staan.
+- Niet gedaan, want het hoort niet bij punt 1: Drizzle-restanten opruimen, README, performance (`Promise.all`).
 
-## Technisch
-- `tsc --noEmit` slaagt.
-- De SQL is getest in een lokale Postgres met een nagebootst schema: herhaald draaien, profiel-trigger, vertrek van eigenaar met overdracht, laatste lid dat het gezin opruimt, en weigeren zonder sessie.
-- Niet getest: de echte Supabase-omgeving, de e-mailtemplates en `next build` (Google Fonts is in mijn omgeving niet bereikbaar).
+## Wat ik wel en niet heb getest
+- Getest: `tsc --noEmit`; de SQL in een lokale Postgres 16 met nagebootst schema (alle migraties op volgorde, herhaald draaien, 3 pogingen + blokkade, onbeperkt gebruik, kleine letters/spaties, rollen, intrekken, lid verwijderen, en dat directe `INSERT/UPDATE/DELETE` door `authenticated`/`anon` wordt geweigerd terwijl lezen en de overige tabellen blijven werken).
+- Niet getest: de echte Supabase-database, het gedrag in de browser en `next build` (Google Fonts is vanuit mijn omgeving niet bereikbaar).
