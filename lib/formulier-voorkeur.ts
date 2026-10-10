@@ -22,11 +22,12 @@ export const ALLE_SOORTEN: Soort[] = [
 
 export type ZichtbareFormulieren = Record<Soort, boolean>
 
-// Standaard staat alles aan: een bestaande gebruiker ziet na deze update
-// dezelfde knoppen als voorheen, plus de vier nieuwe. Uitzetten is een
-// bewuste keuze via Instellingen.
+// Bij eerste gebruik zijn alleen voeding, luier en temperatuur actief.
+// Zodra een gebruiker een keuze wijzigt, blijft die keuze lokaal bewaard.
 export const STANDAARD_ZICHTBARE_FORMULIEREN: ZichtbareFormulieren =
-  Object.fromEntries(ALLE_SOORTEN.map((s) => [s, true])) as ZichtbareFormulieren
+  Object.fromEntries(
+    ALLE_SOORTEN.map((s) => [s, s === "voeding" || s === "luier" || s === "temperatuur"]),
+  ) as ZichtbareFormulieren
 
 function isGeldigeWaarde(waarde: unknown): waarde is ZichtbareFormulieren {
   if (typeof waarde !== "object" || waarde === null) return false

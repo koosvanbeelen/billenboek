@@ -36,11 +36,11 @@ export const ALLE_TELLERS: TellerId[] = [
 
 export const MAX_TELLERS = 4
 
-// Standaard worden alleen voeding, luiers en temperatuur getoond.
+// Bij eerste gebruik: voeding, luiers en tijd sinds de laatste voeding.
 export const STANDAARD_TELLERS: TellerId[] = [
   "voedingenAantal",
   "totaalLuiers",
-  "temperatuur",
+  "tijdSindsVoeding",
 ]
 
 function isGeldigeLijst(waarde: unknown): waarde is TellerId[] {
