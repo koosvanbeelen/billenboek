@@ -37,7 +37,6 @@ export function AppInfoWeergave({ info }: { info: AppInfo }) {
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div><dt className="text-muted-foreground">Appversie</dt><dd className="font-medium">{waarde(info.versie)}</dd></div>
-          <div><dt className="text-muted-foreground">User ID</dt><dd className="break-all font-mono text-xs">{waarde(info.userId)}</dd></div>
         </dl>
       </section>
 
@@ -62,9 +61,10 @@ export function AppInfoWeergave({ info }: { info: AppInfo }) {
       <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center gap-3">
           <DatabaseZap className="size-5 text-primary" aria-hidden />
-          <h2 className="text-base font-medium text-card-foreground">Gezin en kinderen</h2>
+          <h2 className="text-base font-medium text-card-foreground">Gebruiker, Gezin en Kinderen</h2>
         </div>
         <dl className="flex flex-col gap-3 text-sm">
+          <div><dt className="text-muted-foreground">User ID</dt><dd className="break-all font-mono text-xs">{waarde(info.userId)}</dd></div>
           <div><dt className="text-muted-foreground">Gezin ID</dt><dd className="break-all font-mono text-xs">{waarde(info.gezinId)}</dd></div>
           <div>
             <dt className="text-muted-foreground">Kind ID&apos;s</dt>
