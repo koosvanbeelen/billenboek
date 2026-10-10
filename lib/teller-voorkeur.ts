@@ -11,6 +11,7 @@ export type TellerId =
   | "poepluier"
   | "plasluier"
   | "totaalLuiers"
+  | "temperatuur"
   | "tijdSindsVoeding"
   | "tijdSindsLuier"
   | "mlGekolfd"
@@ -25,6 +26,7 @@ export const ALLE_TELLERS: TellerId[] = [
   "poepluier",
   "plasluier",
   "totaalLuiers",
+  "temperatuur",
   "tijdSindsVoeding",
   "tijdSindsLuier",
   "mlGekolfd",
@@ -34,13 +36,11 @@ export const ALLE_TELLERS: TellerId[] = [
 
 export const MAX_TELLERS = 4
 
-// Standaard: dezelfde 4 tellers die de app altijd al toonde, zodat een
-// bestaande gebruiker na deze update niets ziet veranderen.
+// Standaard worden alleen voeding, luiers en temperatuur getoond.
 export const STANDAARD_TELLERS: TellerId[] = [
   "voedingenAantal",
-  "borsttijd",
-  "poepluier",
-  "plasluier",
+  "totaalLuiers",
+  "temperatuur",
 ]
 
 function isGeldigeLijst(waarde: unknown): waarde is TellerId[] {
