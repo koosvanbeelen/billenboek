@@ -138,10 +138,6 @@ export function AccountWeergave({ account, aantalLeden, ikBenEigenaar }: Props) 
       </section>
 
       <section className={kaart}>
-        <div className="flex items-center gap-3">
-          <LogOut className="size-5 text-primary" aria-hidden />
-          <span className="text-base font-medium text-card-foreground">Uitloggen</span>
-        </div>
         <form action={uitloggen}>
           <Button type="submit" variant="outline" className="h-12 w-full text-base">
             <LogOut data-icon="inline-start" aria-hidden />Uitloggen

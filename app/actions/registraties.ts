@@ -1,48 +1,26 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { createClient as createSupabaseClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { getGebruiker } from "@/lib/supabase/server"
 import { getActiefGezinId } from "@/lib/supabase/gezin"
-import { fromDbRow, toDbRow } from "@/lib/db/mappers"
-import { dagGrenzen, datumNaarInput, duurInMinuten, inputNaarDatum } from "@/lib/datum"
-import type {
-  BoertjeItem,
-  DagGegevens,
-  GroeiItem,
-  HuilItem,
-  KolfItem,
-  LuierItem,
-  MedicatieItem,
-  SlaapItem,
-  Soort,
-  TemperatuurItem,
-  TijdlijnItem,
-  VitamineItem,
-  VoedingItem,
-} from "@/lib/types"
-import {
-  boertjeSchema,
-  groeiSchema,
-  huilSchema,
-  kolfSchema,
-  luierSchema,
-  medicatieSchema,
-  slaapSchema,
-  temperatuurSchema,
-  vitamineSchema,
-  voedingSchema,
-  type BoertjeInput,
-  type GroeiInput,
-  type HuilInput,
-  type KolfInput,
-  type LuierInput,
-  type MedicatieInput,
-  type SlaapInput,
-  type TemperatuurInput,
-  type VitamineInput,
-  type VoedingInput,
-} from "@/lib/validations"
+import { fromDbRow, toDbRow, type MappedTable } from "@/lib/db/mappers"
+import { dagGrenzen, datumNaarInput } from "@/lib/datum"
 import { dbFout, parseInvoer } from "@/lib/fouten"
+import { SOORTEN, SOORT_VOLGORDE } from "@/lib/registratie-soorten"
+import type { DagGegevens, Soort, TijdlijnItem } from "@/lib/types"
+import type {
+  BoertjeInput,
+  GroeiInput,
+  HuilInput,
+  KolfInput,
+  LuierInput,
+  MedicatieInput,
+  SlaapInput,
+  TemperatuurInput,
+  VitamineInput,
+  VoedingInput,
+} from "@/lib/validations"
 
 function herlaad() {
   revalidatePath("/")
@@ -50,35 +28,44 @@ function herlaad() {
 }
 
 async function getOwnedClient() {
-  const supabase = await createSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getGebruiker()
   if (!user) throw new Error("Niet ingelogd")
   const gezinId = await getActiefGezinId()
+  const supabase = await createClient()
   return { supabase, user, gezinId }
 }
 
-async function insertOwn(table: string, values: Record<string, unknown>) {
+// ---------------------------------------------------------------------------
+// Algemene bewerkingen (voor alle soorten hetzelfde)
+// ---------------------------------------------------------------------------
+async function voegToe(soort: Soort, input: unknown) {
+  const { tabel, schema, naarRij } = SOORTEN[soort]
+  const invoer = parseInvoer(schema, input, "registraties")
   const { supabase, user, gezinId } = await getOwnedClient()
-  const { error } = await supabase.from(tableName(table)).insert({ ...toDbRow(tableName(table), values), user_id: user.id, gezin_id: gezinId })
+  const { error } = await supabase
+    .from(tabel)
+    .insert({ ...toDbRow(tabel, naarRij(invoer)), user_id: user.id, gezin_id: gezinId })
   if (error) throw dbFout("registraties", error)
+  herlaad()
 }
 
-async function updateOwn(table: string, id: number, values: Record<string, unknown>) {
+async function werkBij(soort: Soort, id: number, input: unknown) {
+  const { tabel, schema, naarRij } = SOORTEN[soort]
+  const invoer = parseInvoer(schema, input, "registraties")
   const { supabase, gezinId } = await getOwnedClient()
-  const { error } = await supabase.from(tableName(table)).update(toDbRow(tableName(table), values)).eq("id", id).eq("gezin_id", gezinId)
+  const rij = toDbRow(tabel, { ...naarRij(invoer), bijgewerktOp: new Date().toISOString() })
+  const { error } = await supabase.from(tabel).update(rij).eq("id", id).eq("gezin_id", gezinId)
   if (error) throw dbFout("registraties", error)
+  herlaad()
 }
 
-async function deleteOwn(table: string, id: number) {
+async function verwijder(soort: Soort, id: number) {
+  const { tabel } = SOORTEN[soort]
   const { supabase, gezinId } = await getOwnedClient()
-  const { error } = await supabase.from(tableName(table)).delete().eq("id", id).eq("gezin_id", gezinId)
+  const { error } = await supabase.from(tabel).delete().eq("id", id).eq("gezin_id", gezinId)
   if (error) throw dbFout("registraties", error)
+  herlaad()
 }
-
-const iso = (d: Date | string) => new Date(d).toISOString()
-
-const tableName = (table: string) => table === "boertjesSpugen" ? "spugen" : table
-const timeColumn = (table: string) => table === "slapen" || table === "huilen" ? "start" : "datum_tijd"
 
 // ---------------------------------------------------------------------------
 // Ophalen van een volledige dag
@@ -87,31 +74,21 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const { van, tot } = dagGrenzen(datum)
   const { supabase, gezinId } = await getOwnedClient()
 
-  const dagQuery = async (table: string): Promise<any[]> => {
+  const dagQuery = async (soort: Soort) => {
+    const { tabel, tijdkolom } = SOORTEN[soort]
     const { data, error } = await supabase
-      .from(tableName(table))
+      .from(tabel)
       .select("*")
       .eq("gezin_id", gezinId)
-      .gte(timeColumn(table), van.toISOString())
-      .lte(timeColumn(table), tot.toISOString())
+      .gte(tijdkolom, van.toISOString())
+      .lte(tijdkolom, tot.toISOString())
     if (error) throw dbFout("registraties", error)
-    return (data ?? []).map((row) => fromDbRow(tableName(table), row))
+    return (data ?? []).map((row) => fromDbRow(tabel, row))
   }
 
-  const vRows = await dagQuery("voedingen")
-  const lRows = await dagQuery("luiers")
-  const tRows = await dagQuery("temperaturen")
-  const bRows = await dagQuery("boertjesSpugen")
-  const viRows = await dagQuery("vitamines")
-  const mRows = await dagQuery("medicatie")
-  const gRows = await dagQuery("groei")
-  const sRows = await dagQuery("slapen")
-  const hRows = await dagQuery("huilen")
-  const kRows = await dagQuery("kolven")
-
-  const historyQuery = async (table: string) => {
+  const laatsteQuery = async (tabel: MappedTable) => {
     const { data, error } = await supabase
-      .from(tableName(table))
+      .from(tabel)
       .select("datum_tijd")
       .eq("gezin_id", gezinId)
       .order("datum_tijd", { ascending: false })
@@ -119,535 +96,80 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
     if (error) throw dbFout("registraties", error)
     return data ?? []
   }
-  const laatsteVoedingRij = await historyQuery("voedingen")
-  const laatsteLuierRij = await historyQuery("luiers")
 
-  const items: TijdlijnItem[] = []
+  // Alle twaalf queries tegelijk, niet na elkaar.
+  const [perSoort, laatsteVoedingRij, laatsteLuierRij] = await Promise.all([
+    Promise.all(SOORT_VOLGORDE.map(dagQuery)),
+    laatsteQuery("voedingen"),
+    laatsteQuery("luiers"),
+  ])
+  const rijen = Object.fromEntries(SOORT_VOLGORDE.map((soort, i) => [soort, perSoort[i]])) as Record<Soort, any[]>
 
-  for (const r of vRows) {
-    items.push({
-      soort: "voeding",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        type: r.type as VoedingItem["type"],
-        borst: r.borst as VoedingItem["borst"],
-        duurMinuten: r.duurMinuten,
-        hoeveelheidMl: r.hoeveelheidMl,
-        notitie: r.notitie,
-      },
-    })
-  }
-  for (const r of lRows) {
-    items.push({
-      soort: "luier",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        plas: r.plas,
-        poep: r.poep,
-        schoon: r.schoon,
-      } satisfies LuierItem,
-    })
-  }
-  for (const r of tRows) {
-    items.push({
-      soort: "temperatuur",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        temperatuur: Number(r.temperatuur),
-      } satisfies TemperatuurItem,
-    })
-  }
-  for (const r of bRows) {
-    items.push({
-      soort: "boertje",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        notitie: r.notitie,
-      } satisfies BoertjeItem,
-    })
-  }
-  for (const r of viRows) {
-    items.push({
-      soort: "vitamine",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        vitamineK: r.vitamineK,
-        vitamineD: r.vitamineD,
-      } satisfies VitamineItem,
-    })
-  }
-  for (const r of mRows) {
-    items.push({
-      soort: "medicatie",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        naam: r.naam,
-        dosering: r.dosering,
-        notitie: r.notitie,
-      } satisfies MedicatieItem,
-    })
-  }
-  for (const r of gRows) {
-    items.push({
-      soort: "groei",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        gewichtKg: r.gewichtKg !== null ? Number(r.gewichtKg) : null,
-        lengteCm: r.lengteCm !== null ? Number(r.lengteCm) : null,
-        opmerking: r.opmerking,
-      } satisfies GroeiItem,
-    })
-  }
-  for (const r of sRows) {
-    items.push({
-      soort: "slapen",
-      id: r.id,
-      datumTijd: iso(r.start),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.start),
-        start: iso(r.start),
-        einde: iso(r.einde),
-        duurMinuten: r.duurMinuten,
-        locatie: r.locatie,
-        notitie: r.notitie,
-      } satisfies SlaapItem,
-    })
-  }
-  for (const r of hRows) {
-    items.push({
-      soort: "huilen",
-      id: r.id,
-      datumTijd: iso(r.start),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.start),
-        start: iso(r.start),
-        einde: iso(r.einde),
-        duurMinuten: r.duurMinuten,
-        oorzaak: r.oorzaak,
-        troost: r.troost,
-      } satisfies HuilItem,
-    })
-  }
-  for (const r of kRows) {
-    items.push({
-      soort: "kolven",
-      id: r.id,
-      datumTijd: iso(r.datumTijd),
-      record: {
-        id: r.id,
-        datumTijd: iso(r.datumTijd),
-        borst: r.borst as KolfItem["borst"],
-        hoeveelheidMl: r.hoeveelheidMl,
-        notitie: r.notitie,
-      } satisfies KolfItem,
-    })
-  }
-
+  const items = SOORT_VOLGORDE.flatMap((soort) =>
+    rijen[soort].map((record) => ({ soort, id: record.id, datumTijd: record.datumTijd, record }) as TijdlijnItem),
+  )
   items.sort((a, b) => a.datumTijd.localeCompare(b.datumTijd))
 
   const tellers: DagGegevens["tellers"] = {
-    voedingenAantal: vRows.length,
-    voedingenMinuten: vRows.reduce((s, r) => s + (r.duurMinuten ?? 0), 0),
-    luiersAantal: lRows.length,
-    luiersPoep: lRows.filter((r) => r.poep).length,
-    luiersPlas: lRows.filter((r) => r.plas).length,
-    laatsteTemperatuur:
-      tRows.length > 0
-        ? Number(
-            [...tRows].sort(
-              (a, b) =>
-                new Date(b.datumTijd).getTime() - new Date(a.datumTijd).getTime(),
-            )[0].temperatuur,
-          )
-        : null,
-    mlGekolfd: kRows.reduce((s, r) => s + r.hoeveelheidMl, 0),
-    slaapMinuten: sRows.reduce((s, r) => s + r.duurMinuten, 0),
-    huilMinuten: hRows.reduce((s, r) => s + r.duurMinuten, 0),
-    laatsteVoeding: laatsteVoedingRij[0]
-      ? datumNaarInput(laatsteVoedingRij[0].datum_tijd)
-      : null,
-    laatsteLuier: laatsteLuierRij[0]
-      ? datumNaarInput(laatsteLuierRij[0].datum_tijd)
-      : null,
+    voedingenAantal: rijen.voeding.length,
+    voedingenMinuten: rijen.voeding.reduce((s, r) => s + (r.duurMinuten ?? 0), 0),
+    luiersAantal: rijen.luier.length,
+    luiersPoep: rijen.luier.filter((r) => r.poep).length,
+    luiersPlas: rijen.luier.filter((r) => r.plas).length,
+    mlGekolfd: rijen.kolven.reduce((s, r) => s + r.hoeveelheidMl, 0),
+    slaapMinuten: rijen.slapen.reduce((s, r) => s + r.duurMinuten, 0),
+    huilMinuten: rijen.huilen.reduce((s, r) => s + r.duurMinuten, 0),
+    laatsteVoeding: laatsteVoedingRij[0] ? datumNaarInput(laatsteVoedingRij[0].datum_tijd) : null,
+    laatsteLuier: laatsteLuierRij[0] ? datumNaarInput(laatsteLuierRij[0].datum_tijd) : null,
   }
 
   return { datum, items, tellers }
 }
 
 // ---------------------------------------------------------------------------
-// Voeding
+// Acties per soort (de namen waarmee de formulieren ze aanroepen)
 // ---------------------------------------------------------------------------
-export async function voegVoedingToe(input: VoedingInput) {
-  const d = parseInvoer(voedingSchema, input, "registraties")
-  await insertOwn("voedingen", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    type: d.type,
-    borst: d.type === "borstvoeding" ? d.borst : null,
-    duurMinuten: d.type === "borstvoeding" ? d.duurMinuten ?? null : null,
-    hoeveelheidMl: d.type !== "borstvoeding" ? d.hoeveelheidMl ?? null : null,
-    notitie: d.notitie || null,
-  })
-  herlaad()
-}
+export async function voegVoedingToe(input: VoedingInput) { return voegToe("voeding", input) }
+export async function werkVoedingBij(id: number, input: VoedingInput) { return werkBij("voeding", id, input) }
+export async function verwijderVoeding(id: number) { return verwijder("voeding", id) }
 
-export async function werkVoedingBij(id: number, input: VoedingInput) {
-  const d = parseInvoer(voedingSchema, input, "registraties")
-  await updateOwn("voedingen", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    type: d.type,
-    borst: d.type === "borstvoeding" ? d.borst : null,
-    duurMinuten: d.type === "borstvoeding" ? d.duurMinuten ?? null : null,
-    hoeveelheidMl: d.type !== "borstvoeding" ? d.hoeveelheidMl ?? null : null,
-    notitie: d.notitie || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
+export async function voegLuierToe(input: LuierInput) { return voegToe("luier", input) }
+export async function werkLuierBij(id: number, input: LuierInput) { return werkBij("luier", id, input) }
+export async function verwijderLuier(id: number) { return verwijder("luier", id) }
 
-export async function verwijderVoeding(id: number) {
-  await deleteOwn("voedingen", id)
-  herlaad()
-}
+export async function voegTemperatuurToe(input: TemperatuurInput) { return voegToe("temperatuur", input) }
+export async function werkTemperatuurBij(id: number, input: TemperatuurInput) { return werkBij("temperatuur", id, input) }
+export async function verwijderTemperatuur(id: number) { return verwijder("temperatuur", id) }
 
-// ---------------------------------------------------------------------------
-// Luier
-// ---------------------------------------------------------------------------
-export async function voegLuierToe(input: LuierInput) {
-  const d = parseInvoer(luierSchema, input, "registraties")
-  await insertOwn("luiers", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    plas: d.plas,
-    poep: d.poep,
-    schoon: d.schoon,
-  })
-  herlaad()
-}
+export async function voegBoertjeToe(input: BoertjeInput) { return voegToe("boertje", input) }
+export async function werkBoertjeBij(id: number, input: BoertjeInput) { return werkBij("boertje", id, input) }
+export async function verwijderBoertje(id: number) { return verwijder("boertje", id) }
+export async function voegSpugenToe(input: BoertjeInput) { return voegToe("boertje", input) }
+export async function werkSpugenBij(id: number, input: BoertjeInput) { return werkBij("boertje", id, input) }
 
-export async function werkLuierBij(id: number, input: LuierInput) {
-  const d = parseInvoer(luierSchema, input, "registraties")
-  await updateOwn("luiers", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    plas: d.plas,
-    poep: d.poep,
-    schoon: d.schoon,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
+export async function voegVitamineToe(input: VitamineInput) { return voegToe("vitamine", input) }
+export async function werkVitamineBij(id: number, input: VitamineInput) { return werkBij("vitamine", id, input) }
+export async function verwijderVitamine(id: number) { return verwijder("vitamine", id) }
 
-export async function verwijderLuier(id: number) {
-  await deleteOwn("luiers", id)
-  herlaad()
-}
+export async function voegMedicatieToe(input: MedicatieInput) { return voegToe("medicatie", input) }
+export async function werkMedicatieBij(id: number, input: MedicatieInput) { return werkBij("medicatie", id, input) }
+export async function verwijderMedicatie(id: number) { return verwijder("medicatie", id) }
 
-// ---------------------------------------------------------------------------
-// Temperatuur
-// ---------------------------------------------------------------------------
-export async function voegTemperatuurToe(input: TemperatuurInput) {
-  const d = parseInvoer(temperatuurSchema, input, "registraties")
-  await insertOwn("temperaturen", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    temperatuur: d.temperatuur.toFixed(1),
-  })
-  herlaad()
-}
+export async function voegGroeiToe(input: GroeiInput) { return voegToe("groei", input) }
+export async function werkGroeiBij(id: number, input: GroeiInput) { return werkBij("groei", id, input) }
+export async function verwijderGroei(id: number) { return verwijder("groei", id) }
 
-export async function werkTemperatuurBij(id: number, input: TemperatuurInput) {
-  const d = parseInvoer(temperatuurSchema, input, "registraties")
-  await updateOwn("temperaturen", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    temperatuur: d.temperatuur.toFixed(1),
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
+export async function voegSlaapToe(input: SlaapInput) { return voegToe("slapen", input) }
+export async function werkSlaapBij(id: number, input: SlaapInput) { return werkBij("slapen", id, input) }
+export async function verwijderSlaap(id: number) { return verwijder("slapen", id) }
 
-export async function verwijderTemperatuur(id: number) {
-  await deleteOwn("temperaturen", id)
-  herlaad()
-}
+export async function voegHuilToe(input: HuilInput) { return voegToe("huilen", input) }
+export async function werkHuilBij(id: number, input: HuilInput) { return werkBij("huilen", id, input) }
+export async function verwijderHuil(id: number) { return verwijder("huilen", id) }
 
-// ---------------------------------------------------------------------------
-// Boertje / Spugen
-// ---------------------------------------------------------------------------
-export async function voegBoertjeToe(input: BoertjeInput) {
-  const d = parseInvoer(boertjeSchema, input, "registraties")
-  await insertOwn("boertjesSpugen", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    notitie: d.notitie || null,
-  })
-  herlaad()
-}
+export async function voegKolfToe(input: KolfInput) { return voegToe("kolven", input) }
+export async function werkKolfBij(id: number, input: KolfInput) { return werkBij("kolven", id, input) }
+export async function verwijderKolf(id: number) { return verwijder("kolven", id) }
 
-export async function werkBoertjeBij(id: number, input: BoertjeInput) {
-  const d = parseInvoer(boertjeSchema, input, "registraties")
-  await updateOwn("boertjesSpugen", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    notitie: d.notitie || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderBoertje(id: number) {
-  await deleteOwn("boertjesSpugen", id)
-  herlaad()
-}
-
-export async function voegSpugenToe(input: BoertjeInput) {
-  return voegBoertjeToe(input)
-}
-
-export async function werkSpugenBij(id: number, input: BoertjeInput) {
-  return werkBoertjeBij(id, input)
-}
-
-// ---------------------------------------------------------------------------
-// Vitamines
-// ---------------------------------------------------------------------------
-export async function voegVitamineToe(input: VitamineInput) {
-  const d = parseInvoer(vitamineSchema, input, "registraties")
-  await insertOwn("vitamines", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    vitamineK: d.vitamineK,
-    vitamineD: d.vitamineD,
-  })
-  herlaad()
-}
-
-export async function werkVitamineBij(id: number, input: VitamineInput) {
-  const d = parseInvoer(vitamineSchema, input, "registraties")
-  await updateOwn("vitamines", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    vitamineK: d.vitamineK,
-    vitamineD: d.vitamineD,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderVitamine(id: number) {
-  await deleteOwn("vitamines", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Medicatie
-// ---------------------------------------------------------------------------
-export async function voegMedicatieToe(input: MedicatieInput) {
-  const d = parseInvoer(medicatieSchema, input, "registraties")
-  await insertOwn("medicatie", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    naam: d.naam,
-    dosering: d.dosering || null,
-    notitie: d.notitie || null,
-  })
-  herlaad()
-}
-
-export async function werkMedicatieBij(id: number, input: MedicatieInput) {
-  const d = parseInvoer(medicatieSchema, input, "registraties")
-  await updateOwn("medicatie", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    naam: d.naam,
-    dosering: d.dosering || null,
-    notitie: d.notitie || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderMedicatie(id: number) {
-  await deleteOwn("medicatie", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Groei
-// ---------------------------------------------------------------------------
-export async function voegGroeiToe(input: GroeiInput) {
-  const d = parseInvoer(groeiSchema, input, "registraties")
-  await insertOwn("groei", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
-    lengteCm: d.lengteCm !== undefined ? d.lengteCm.toFixed(1) : null,
-    opmerking: d.opmerking || null,
-  })
-  herlaad()
-}
-
-export async function werkGroeiBij(id: number, input: GroeiInput) {
-  const d = parseInvoer(groeiSchema, input, "registraties")
-  await updateOwn("groei", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    gewichtKg: d.gewichtKg !== undefined ? d.gewichtKg.toFixed(2) : null,
-    lengteCm: d.lengteCm !== undefined ? d.lengteCm.toFixed(1) : null,
-    opmerking: d.opmerking || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderGroei(id: number) {
-  await deleteOwn("groei", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Slapen
-// ---------------------------------------------------------------------------
-export async function voegSlaapToe(input: SlaapInput) {
-  const d = parseInvoer(slaapSchema, input, "registraties")
-  await insertOwn("slapen", {
-    start: inputNaarDatum(d.start).toISOString(),
-    einde: inputNaarDatum(d.einde).toISOString(),
-    duurMinuten: duurInMinuten(d.start, d.einde),
-    locatie: d.locatie || null,
-    notitie: d.notitie || null,
-  })
-  herlaad()
-}
-
-export async function werkSlaapBij(id: number, input: SlaapInput) {
-  const d = parseInvoer(slaapSchema, input, "registraties")
-  await updateOwn("slapen", id, {
-    start: inputNaarDatum(d.start).toISOString(),
-    einde: inputNaarDatum(d.einde).toISOString(),
-    duurMinuten: duurInMinuten(d.start, d.einde),
-    locatie: d.locatie || null,
-    notitie: d.notitie || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderSlaap(id: number) {
-  await deleteOwn("slapen", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Huilen
-// ---------------------------------------------------------------------------
-export async function voegHuilToe(input: HuilInput) {
-  const d = parseInvoer(huilSchema, input, "registraties")
-  await insertOwn("huilen", {
-    start: inputNaarDatum(d.start).toISOString(),
-    einde: inputNaarDatum(d.einde).toISOString(),
-    duurMinuten: duurInMinuten(d.start, d.einde),
-    oorzaak: d.oorzaak || null,
-    troost: d.troost || null,
-  })
-  herlaad()
-}
-
-export async function werkHuilBij(id: number, input: HuilInput) {
-  const d = parseInvoer(huilSchema, input, "registraties")
-  await updateOwn("huilen", id, {
-    start: inputNaarDatum(d.start).toISOString(),
-    einde: inputNaarDatum(d.einde).toISOString(),
-    duurMinuten: duurInMinuten(d.start, d.einde),
-    oorzaak: d.oorzaak || null,
-    troost: d.troost || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderHuil(id: number) {
-  await deleteOwn("huilen", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Kolven
-// ---------------------------------------------------------------------------
-export async function voegKolfToe(input: KolfInput) {
-  const d = parseInvoer(kolfSchema, input, "registraties")
-  await insertOwn("kolven", {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    borst: d.borst,
-    hoeveelheidMl: d.hoeveelheidMl,
-    notitie: d.notitie || null,
-  })
-  herlaad()
-}
-
-export async function werkKolfBij(id: number, input: KolfInput) {
-  const d = parseInvoer(kolfSchema, input, "registraties")
-  await updateOwn("kolven", id, {
-    datumTijd: inputNaarDatum(d.datumTijd).toISOString(),
-    borst: d.borst,
-    hoeveelheidMl: d.hoeveelheidMl,
-    notitie: d.notitie || null,
-    bijgewerktOp: new Date().toISOString(),
-  })
-  herlaad()
-}
-
-export async function verwijderKolf(id: number) {
-  await deleteOwn("kolven", id)
-  herlaad()
-}
-
-// ---------------------------------------------------------------------------
-// Algemene verwijderfunctie op basis van soort
-// ---------------------------------------------------------------------------
-export async function verwijderRegistratie(soort: Soort, id: number) {
-  switch (soort) {
-    case "voeding":
-  await deleteOwn("voedingen", id)
-      break
-    case "luier":
-await deleteOwn("luiers", id)
-      break
-    case "temperatuur":
-await deleteOwn("temperaturen", id)
-      break
-    case "boertje":
-await deleteOwn("boertjesSpugen", id)
-      break
-    case "vitamine":
-await deleteOwn("vitamines", id)
-      break
-    case "medicatie":
-await deleteOwn("medicatie", id)
-      break
-    case "groei":
-await deleteOwn("groei", id)
-      break
-    case "slapen":
-await deleteOwn("slapen", id)
-      break
-    case "huilen":
-await deleteOwn("huilen", id)
-      break
-    case "kolven":
-await deleteOwn("kolven", id)
-      break
-  }
-  herlaad()
-}
+// Verwijderen op basis van de soort (gebruikt door de tijdlijnkaarten)
+export async function verwijderRegistratie(soort: Soort, id: number) { return verwijder(soort, id) }

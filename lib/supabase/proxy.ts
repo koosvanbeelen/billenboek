@@ -30,7 +30,14 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getClaims controleert het token lokaal (via de publieke sleutel van je project) en vernieuwt
+  // de sessie als die is verlopen. Dat scheelt een netwerkaanroep naar Supabase bij elke
+  // navigatie en elke voorgeladen link. Pagina's en acties controleren de gebruiker daarna
+  // nog steeds zelf met getUser(), dus een verwijderd account komt nergens binnen.
+  // Bij een project met de oudere gedeelde JWT-sleutel valt getClaims vanzelf terug op een
+  // netwerkaanroep.
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const user = claimsData?.claims?.sub ? claimsData.claims : null
   if (!user && !publicRoute) return NextResponse.redirect(new URL("/login", request.url))
   if (user && pathname === "/login") return NextResponse.redirect(new URL("/", request.url))
   return response
