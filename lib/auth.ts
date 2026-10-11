@@ -1,7 +1,9 @@
-import { getGebruiker } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 
 export async function isIngelogd(): Promise<boolean> {
-  return Boolean(await getGebruiker())
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return Boolean(user)
 }
 
 // Alleen interne paden toestaan als doorstuur-doel (voorkomt open redirects).
