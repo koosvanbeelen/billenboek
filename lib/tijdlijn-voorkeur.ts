@@ -6,7 +6,7 @@ import type { TijdlijnVolgorde } from "@/components/tijdlijn-sorteer-knop"
 const OPSLAG_SLEUTEL = "billenboek:tijdlijn-volgorde"
 const WIJZIG_EVENT = "billenboek:tijdlijn-volgorde-wijziging"
 
-export const STANDAARD_TIJDLIJN_VOLGORDE: TijdlijnVolgorde = "oud-nieuw"
+export const STANDAARD_TIJDLIJN_VOLGORDE: TijdlijnVolgorde = "nieuw-oud"
 
 function isGeldigeVolgorde(waarde: unknown): waarde is TijdlijnVolgorde {
   return waarde === "oud-nieuw" || waarde === "nieuw-oud"
