@@ -144,12 +144,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
         <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <h2
-              id="geschiedenis-tellerfilters"
-              className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground"
-            >
-              Tellers tonen
-            </h2>
+
             <span className="text-xs tabular-nums text-muted-foreground">
               {zichtbareTellers.length}/{MAX_TELLERS}
             </span>
