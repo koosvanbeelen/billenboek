@@ -14,7 +14,6 @@ import {
   type Bewerking,
 } from "@/components/registratie-dialog"
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
-import { DagTellersRij } from "@/components/dag-tellers"
 import { KindKiezer } from "@/components/kind-kiezer"
 import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
@@ -50,6 +49,12 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const [volgorde] = useTijdlijnVolgorde()
   const [zichtbareTellers, zetTeller] = useZichtbareTellers()
   const { actiefKind } = useKinderen()
+  const geschiedenisTellers: TellerId[] = ALLE_TELLERS.filter(
+    (id) => id !== "tijdSindsVoeding" && id !== "tijdSindsLuier",
+  )
+  const zichtbareGeschiedenisTellers = zichtbareTellers.filter((id) =>
+    geschiedenisTellers.includes(id),
+  )
 
   function wijzigTellers(waarden: string[]) {
     const gekozen = waarden as TellerId[]
@@ -58,7 +63,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
       return
     }
     const geselecteerd = new Set(gekozen)
-    for (const id of ALLE_TELLERS) {
+    for (const id of geschiedenisTellers) {
       if (geselecteerd.has(id) !== zichtbareTellers.includes(id)) {
         zetTeller(id, geselecteerd.has(id))
       }
@@ -146,12 +151,12 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           <div className="flex items-center justify-between gap-2">
 
             <span className="text-xs tabular-nums text-muted-foreground">
-              {zichtbareTellers.length}/{MAX_TELLERS}
+              {zichtbareGeschiedenisTellers.length}/{MAX_TELLERS}
             </span>
           </div>
           <ToggleGroup
             multiple
-            value={zichtbareTellers}
+            value={zichtbareGeschiedenisTellers}
             onValueChange={wijzigTellers}
             variant="outline"
             size="sm"
@@ -159,7 +164,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
             className="flex w-full flex-wrap gap-1"
             aria-label="Tellers voor geschiedenis selecteren"
           >
-            {ALLE_TELLERS.map((id) => {
+            {geschiedenisTellers.map((id) => {
               const meta = tellerMeta[id]
               const Icon = meta.icon
               return (
@@ -245,8 +250,6 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           <ChevronRight className="size-5" />
         </Button>
       </div>
-
-      <DagTellersRij tellers={data.tellers} />
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">
