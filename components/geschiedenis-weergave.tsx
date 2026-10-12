@@ -142,6 +142,44 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
         <KindKiezer />
 
+        <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2
+              id="geschiedenis-tellerfilters"
+              className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Tellers tonen
+            </h2>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {zichtbareTellers.length}/{MAX_TELLERS}
+            </span>
+          </div>
+          <ToggleGroup
+            multiple
+            value={zichtbareTellers}
+            onValueChange={wijzigTellers}
+            variant="outline"
+            size="sm"
+            spacing={1}
+            className="flex w-full flex-wrap gap-1"
+            aria-label="Tellers voor geschiedenis selecteren"
+          >
+            {ALLE_TELLERS.map((id) => {
+              const meta = tellerMeta[id]
+              const Icon = meta.icon
+              return (
+                <ToggleGroupItem key={id} value={id} aria-label={meta.label}>
+                  <Icon data-icon="inline-start" aria-hidden />
+                  {meta.label}
+                </ToggleGroupItem>
+              )
+            })}
+          </ToggleGroup>
+          <p className="text-xs text-muted-foreground">
+            Kies maximaal {MAX_TELLERS} tellers voor de kaarten hieronder.
+          </p>
+        </section>
+
         {samenvattingen && samenvattingen.length === 0 ? (
           <LegeStatus
             icon={Calendar}
@@ -151,7 +189,11 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
         ) : samenvattingen ? (
           <div className={bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"}>
             {samenvattingen.map((s) => (
-              <DagSamenvattingKaart key={s.datum} dag={s} />
+              <DagSamenvattingKaart
+                key={s.datum}
+                dag={s}
+                zichtbareTellers={zichtbareTellers}
+              />
             ))}
           </div>
         ) : (
@@ -208,45 +250,6 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           <ChevronRight className="size-5" />
         </Button>
       </div>
-
-      {/* Tellerfilters */}
-      <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2
-            id="geschiedenis-tellerfilters"
-            className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground"
-          >
-            Tellers
-          </h2>
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {zichtbareTellers.length}/{MAX_TELLERS}
-          </span>
-        </div>
-        <ToggleGroup
-          multiple
-          value={zichtbareTellers}
-          onValueChange={wijzigTellers}
-          variant="outline"
-          size="sm"
-          spacing={1}
-          className="flex w-full flex-wrap gap-1"
-          aria-label="Tellers selecteren"
-        >
-          {ALLE_TELLERS.map((id) => {
-            const meta = tellerMeta[id]
-            const Icon = meta.icon
-            return (
-              <ToggleGroupItem key={id} value={id} aria-label={meta.label}>
-                <Icon data-icon="inline-start" aria-hidden />
-                {meta.label}
-              </ToggleGroupItem>
-            )
-          })}
-        </ToggleGroup>
-        <p className="text-xs text-muted-foreground">
-          Kies maximaal {MAX_TELLERS} tellers om voor deze dag te tonen.
-        </p>
-      </section>
 
       <DagTellersRij tellers={data.tellers} />
 
