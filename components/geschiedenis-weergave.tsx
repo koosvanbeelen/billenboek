@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
@@ -16,6 +17,13 @@ import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
 import { KindKiezer } from "@/components/kind-kiezer"
 import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
+import {
+  ALLE_TELLERS,
+  MAX_TELLERS,
+  useZichtbareTellers,
+  type TellerId,
+} from "@/lib/teller-voorkeur"
+import { tellerMeta } from "@/lib/tellers"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
 import { verschuifDatum, isVandaag, formatDatumLang } from "@/lib/datum"
@@ -39,7 +47,28 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   >(null)
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
+  const [zichtbareTellers, zetTeller] = useZichtbareTellers()
   const { actiefKind } = useKinderen()
+  const geschiedenisTellers: TellerId[] = ALLE_TELLERS.filter(
+    (id) => id !== "tijdSindsVoeding" && id !== "tijdSindsLuier",
+  )
+  const zichtbareGeschiedenisTellers = zichtbareTellers.filter((id) =>
+    geschiedenisTellers.includes(id),
+  )
+
+  function wijzigTellers(waarden: string[]) {
+    const gekozen = waarden as TellerId[]
+    if (gekozen.length > MAX_TELLERS) {
+      toast.error(`Je kunt maximaal ${MAX_TELLERS} tellers selecteren`)
+      return
+    }
+    const geselecteerd = new Set(gekozen)
+    for (const id of geschiedenisTellers) {
+      if (geselecteerd.has(id) !== zichtbareTellers.includes(id)) {
+        zetTeller(id, geselecteerd.has(id))
+      }
+    }
+  }
 
   // Respecteer dezelfde tijdlijn-voorkeur als "Vandaag" (in te stellen via
   // Instellingen).
@@ -118,6 +147,39 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
         <KindKiezer />
 
+        <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {zichtbareGeschiedenisTellers.length}/{MAX_TELLERS}
+            </span>
+          </div>
+          <ToggleGroup
+            multiple
+            value={zichtbareGeschiedenisTellers}
+            onValueChange={wijzigTellers}
+            variant="outline"
+            size="sm"
+            spacing={1}
+            className="flex w-full flex-wrap gap-1"
+            aria-label="Tellers voor geschiedenis selecteren"
+          >
+            {geschiedenisTellers.map((id) => {
+              const meta = tellerMeta[id]
+              const Icon = meta.icon
+              return (
+                <ToggleGroupItem key={id} value={id} aria-label={meta.label}>
+                  <Icon data-icon="inline-start" aria-hidden />
+                  {meta.label}
+                </ToggleGroupItem>
+              )
+            })}
+          </ToggleGroup>
+          <p className="text-xs text-muted-foreground">
+            Kies maximaal {MAX_TELLERS} tellers voor de kaarten hieronder.
+          </p>
+        </section>
+
         {samenvattingen && samenvattingen.length === 0 ? (
           <LegeStatus
             icon={Calendar}
@@ -127,7 +189,11 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
         ) : samenvattingen ? (
           <div className={bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"}>
             {samenvattingen.map((s) => (
-              <DagSamenvattingKaart key={s.datum} dag={s} />
+              <DagSamenvattingKaart
+                key={s.datum}
+                dag={s}
+                zichtbareTellers={zichtbareTellers}
+              />
             ))}
           </div>
         ) : (

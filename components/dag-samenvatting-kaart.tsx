@@ -5,12 +5,14 @@ import { Milk, Baby, Thermometer, ChevronRight } from "lucide-react"
 import { formatDatumLang } from "@/lib/datum"
 import { TemperatuurIndicator } from "@/components/temperatuur-indicator"
 import type { DagSamenvatting } from "@/app/actions/geschiedenis"
+import type { TellerId } from "@/lib/teller-voorkeur"
 
 type Props = {
   dag: DagSamenvatting
+  zichtbareTellers: TellerId[]
 }
 
-export function DagSamenvattingKaart({ dag }: Props) {
+export function DagSamenvattingKaart({ dag, zichtbareTellers }: Props) {
   return (
     <Link
       href={`/geschiedenis?datum=${dag.datum}&detail=true`}
@@ -26,41 +28,48 @@ export function DagSamenvattingKaart({ dag }: Props) {
         </div>
       </div>
 
-      {/* Midden kolom: tellers */}
+      {/* Midden kolom: alleen de geselecteerde tellers */}
       <div className="flex flex-1 items-center justify-around gap-2 px-2">
-        {/* Voedingen */}
-        <div className="flex flex-col items-center gap-1 text-center">
-          <Milk className="size-4 text-primary" aria-hidden />
-          <div className="text-sm font-bold text-foreground">
-            {dag.voedingenAantal}
-          </div>
-          <div className="text-xs text-muted-foreground">{dag.voedingenMinuten}m</div>
-        </div>
-
-        {/* Luiers */}
-        <div className="flex flex-col items-center gap-1 text-center">
-          <Baby className="size-4 text-primary" aria-hidden />
-          <div className="flex items-center gap-0.5 text-sm font-bold text-foreground">
-            <span>{dag.luiersPoep}</span>
-            <span className="text-xs">/</span>
-            <span>{dag.luiersPlas}</span>
-          </div>
-          <div className="text-xs text-muted-foreground">poep/plas</div>
-        </div>
-
-        {/* Temperatuur */}
-        {dag.gemiddeldeTemperatuur !== null ? (
+        {zichtbareTellers.includes("voedingenAantal") && (
           <div className="flex flex-col items-center gap-1 text-center">
-            <Thermometer className="size-4 text-primary" aria-hidden />
-            <TemperatuurIndicator
-              temperatuur={dag.gemiddeldeTemperatuur}
-              className="text-xs"
+            <Milk className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">
+              {dag.voedingenAantal}
+            </div>
+            <div className="text-xs text-muted-foreground">{dag.voedingenMinuten}m</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("poepluier") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Baby className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{dag.luiersPoep}</div>
+            <div className="text-xs text-muted-foreground">poep</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("plasluier") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Baby className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{dag.luiersPlas}</div>
+            <div className="text-xs text-muted-foreground">plas</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("temperatuur") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Thermometer
+              className={dag.gemiddeldeTemperatuur === null ? "size-4 text-muted-foreground/40" : "size-4 text-primary"}
+              aria-hidden
             />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-center">
-            <Thermometer className="size-4 text-muted-foreground/40" aria-hidden />
-            <div className="text-xs text-muted-foreground/50">—</div>
+            {dag.gemiddeldeTemperatuur !== null ? (
+              <TemperatuurIndicator
+                temperatuur={dag.gemiddeldeTemperatuur}
+                className="text-xs"
+              />
+            ) : (
+              <div className="text-xs text-muted-foreground/50">—</div>
+            )}
           </div>
         )}
       </div>
