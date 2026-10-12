@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
@@ -13,9 +14,17 @@ import {
   type Bewerking,
 } from "@/components/registratie-dialog"
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
+import { DagTellersRij } from "@/components/dag-tellers"
 import { KindKiezer } from "@/components/kind-kiezer"
 import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
+import {
+  ALLE_TELLERS,
+  MAX_TELLERS,
+  useZichtbareTellers,
+  type TellerId,
+} from "@/lib/teller-voorkeur"
+import { tellerMeta } from "@/lib/tellers"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
 import { verschuifDatum, isVandaag, formatDatumLang } from "@/lib/datum"
@@ -39,7 +48,22 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   >(null)
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
+  const [zichtbareTellers, zetTeller] = useZichtbareTellers()
   const { actiefKind } = useKinderen()
+
+  function wijzigTellers(waarden: string[]) {
+    const gekozen = waarden as TellerId[]
+    if (gekozen.length > MAX_TELLERS) {
+      toast.error(`Je kunt maximaal ${MAX_TELLERS} tellers selecteren`)
+      return
+    }
+    const geselecteerd = new Set(gekozen)
+    for (const id of ALLE_TELLERS) {
+      if (geselecteerd.has(id) !== zichtbareTellers.includes(id)) {
+        zetTeller(id, geselecteerd.has(id))
+      }
+    }
+  }
 
   // Respecteer dezelfde tijdlijn-voorkeur als "Vandaag" (in te stellen via
   // Instellingen).
@@ -184,6 +208,47 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           <ChevronRight className="size-5" />
         </Button>
       </div>
+
+      {/* Tellerfilters */}
+      <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2
+            id="geschiedenis-tellerfilters"
+            className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Tellers
+          </h2>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {zichtbareTellers.length}/{MAX_TELLERS}
+          </span>
+        </div>
+        <ToggleGroup
+          multiple
+          value={zichtbareTellers}
+          onValueChange={wijzigTellers}
+          variant="outline"
+          size="sm"
+          spacing={1}
+          className="flex w-full flex-wrap gap-1"
+          aria-label="Tellers selecteren"
+        >
+          {ALLE_TELLERS.map((id) => {
+            const meta = tellerMeta[id]
+            const Icon = meta.icon
+            return (
+              <ToggleGroupItem key={id} value={id} aria-label={meta.label}>
+                <Icon data-icon="inline-start" aria-hidden />
+                {meta.label}
+              </ToggleGroupItem>
+            )
+          })}
+        </ToggleGroup>
+        <p className="text-xs text-muted-foreground">
+          Kies maximaal {MAX_TELLERS} tellers om voor deze dag te tonen.
+        </p>
+      </section>
+
+      <DagTellersRij tellers={data.tellers} />
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">
