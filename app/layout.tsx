@@ -16,6 +16,14 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "Billenboek | Samen overzicht houden",
   description: "Een veilige, gedeelde plek voor ouders en verzorgers om het ritme van jullie gezin bij te houden.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
 }
 
 export const viewport: Viewport = {
