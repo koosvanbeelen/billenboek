@@ -15,6 +15,8 @@ import {
   type Bewerking,
 } from "@/components/registratie-dialog"
 import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
+import { KindKiezer } from "@/components/kind-kiezer"
+import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
 import { useActieveTimer } from "@/lib/actieve-timer"
@@ -43,8 +45,9 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
   const [zichtbaar] = useZichtbareFormulieren()
-  const slaapTimer = useActieveTimer("slapen")
-  const huilTimer = useActieveTimer("huilen")
+  const { actiefKind } = useKinderen()
+  const slaapTimer = useActieveTimer("slapen", actiefKind.id)
+  const huilTimer = useActieveTimer("huilen", actiefKind.id)
 
   const zichtbareSoorten = useMemo(
     () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
@@ -66,6 +69,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   useEffect(() => {
     if (toonDetail) return
     let actief = true
+    setSamenvattingen(null)
     start(async () => {
       try {
         const s = await getGeschiedenis()
@@ -78,7 +82,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
       actief = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toonDetail])
+  }, [toonDetail, actiefKind.id])
 
   function gaTerug() {
     if (toonDetail) {
@@ -153,6 +157,8 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           Geschiedenis
         </h1>
 
+        <KindKiezer />
+
         {samenvattingen && samenvattingen.length === 0 ? (
           <LegeStatus
             icon={Calendar}
@@ -177,6 +183,9 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   // ===== DETAILWEERGAVE: dezelfde als Vandaag (tijdlijn + bewerken/verwijderen) =====
   return (
     <div className="flex flex-col gap-5">
+      {/* Kindkiezer (alleen bij meerdere kinderen), boven de datumnavigatie */}
+      <KindKiezer />
+
       {/* Terug naar lijstweergave */}
       <Button
         variant="ghost"

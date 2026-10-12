@@ -1,11 +1,13 @@
 import Link from "next/link"
 import { ChevronLeft, UsersRound } from "lucide-react"
 import { GezinKaart } from "@/components/gezin-kaart"
+import { KinderenKaart } from "@/components/kinderen-kaart"
+import { getKinderen } from "@/lib/supabase/kind"
 import { laadGezinsgegevens } from "@/app/actions/gezinnen"
 import { Button } from "@/components/ui/button"
 
 export default async function GezinInstellingenPage() {
-  const gezinsgegevens = await laadGezinsgegevens()
+  const [gezinsgegevens, kinderen] = await Promise.all([laadGezinsgegevens(), getKinderen()])
 
   return (
     <div className="flex flex-col gap-5">
@@ -18,6 +20,7 @@ export default async function GezinInstellingenPage() {
           <h1 className="font-heading text-xl font-semibold text-foreground">Gezin</h1>
         </div>
       </div>
+      <KinderenKaart kinderen={kinderen} />
       <GezinKaart gezinsgegevens={gezinsgegevens} />
     </div>
   )

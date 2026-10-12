@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getGebruiker } from "@/lib/supabase/server"
 import { getActiefGezinId } from "@/lib/supabase/gezin"
+import { getActiefKindId } from "@/lib/supabase/kind"
 import { fromDbRow, toDbRow, type MappedTable } from "@/lib/db/mappers"
 import { dagGrenzen, datumNaarInput } from "@/lib/datum"
 import { dbFout, parseInvoer } from "@/lib/fouten"
@@ -31,8 +32,10 @@ async function getOwnedClient() {
   const user = await getGebruiker()
   if (!user) throw new Error("Niet ingelogd")
   const gezinId = await getActiefGezinId()
+  // Het gekozen kind, op de server gecontroleerd tegen de kinderen van het gezin.
+  const kindId = await getActiefKindId()
   const supabase = await createClient()
-  return { supabase, user, gezinId }
+  return { supabase, user, gezinId, kindId }
 }
 
 // ---------------------------------------------------------------------------
@@ -41,10 +44,12 @@ async function getOwnedClient() {
 async function voegToe(soort: Soort, input: unknown) {
   const { tabel, schema, naarRij } = SOORTEN[soort]
   const invoer = parseInvoer(schema, input, "registraties")
-  const { supabase, user, gezinId } = await getOwnedClient()
+  const { supabase, user, gezinId, kindId } = await getOwnedClient()
+  // Elke registratie hoort bij de ingelogde gebruiker (user_id), het gezin (gezin_id) en het
+  // gekozen kind (kind_id). De database controleert dat kind en gezin bij elkaar horen.
   const { error } = await supabase
     .from(tabel)
-    .insert({ ...toDbRow(tabel, naarRij(invoer)), user_id: user.id, gezin_id: gezinId })
+    .insert({ ...toDbRow(tabel, naarRij(invoer)), user_id: user.id, gezin_id: gezinId, kind_id: kindId })
   if (error) throw dbFout("registraties", error)
   herlaad()
 }
@@ -53,6 +58,8 @@ async function werkBij(soort: Soort, id: number, input: unknown) {
   const { tabel, schema, naarRij } = SOORTEN[soort]
   const invoer = parseInvoer(schema, input, "registraties")
   const { supabase, gezinId } = await getOwnedClient()
+  // kind_id staat bewust niet in de update: een registratie wisselt nooit van kind. Het id is
+  // uniek per tabel, dus bewerken en verwijderen werkt ook als er intussen van kind is gewisseld.
   const rij = toDbRow(tabel, { ...naarRij(invoer), bijgewerktOp: new Date().toISOString() })
   const { error } = await supabase.from(tabel).update(rij).eq("id", id).eq("gezin_id", gezinId)
   if (error) throw dbFout("registraties", error)
@@ -72,7 +79,7 @@ async function verwijder(soort: Soort, id: number) {
 // ---------------------------------------------------------------------------
 export async function getDagGegevens(datum: string): Promise<DagGegevens> {
   const { van, tot } = dagGrenzen(datum)
-  const { supabase, gezinId } = await getOwnedClient()
+  const { supabase, gezinId, kindId } = await getOwnedClient()
 
   const dagQuery = async (soort: Soort) => {
     const { tabel, tijdkolom } = SOORTEN[soort]
@@ -80,6 +87,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
       .from(tabel)
       .select("*")
       .eq("gezin_id", gezinId)
+      .eq("kind_id", kindId)
       .gte(tijdkolom, van.toISOString())
       .lte(tijdkolom, tot.toISOString())
     if (error) throw dbFout("registraties", error)
@@ -91,6 +99,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
       .from(tabel)
       .select("datum_tijd")
       .eq("gezin_id", gezinId)
+      .eq("kind_id", kindId)
       .order("datum_tijd", { ascending: false })
       .limit(1)
     if (error) throw dbFout("registraties", error)

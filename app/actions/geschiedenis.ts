@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { getActiefGezinId } from "@/lib/supabase/gezin"
+import { getActiefKindId } from "@/lib/supabase/kind"
 import { vandaagDatum } from "@/lib/datum"
 import { fromDbRow } from "@/lib/db/mappers"
 
@@ -15,7 +16,7 @@ export type DagSamenvatting = {
 }
 
 /**
- * Haalt alle dagen met data op (maximaal 60 dagen terug).
+ * Haalt alle dagen met data op (maximaal 60 dagen terug) voor het gekozen kind.
  * Bouwt een samenvatting per dag met voedingen, luiers en gemiddelde temp.
  */
 export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
@@ -33,11 +34,13 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
   if (!user) throw new Error("Niet ingelogd")
 
   const gezinId = await getActiefGezinId()
+  const kindId = await getActiefKindId()
   const query = async (table: string): Promise<Record<string, any>[]> => {
     const { data, error } = await supabase
       .from(table)
       .select("*")
       .eq("gezin_id", gezinId)
+      .eq("kind_id", kindId)
       .gte("datum_tijd", vanDatum.toISOString())
       .lte("datum_tijd", totDatum.toISOString())
     if (error) throw error

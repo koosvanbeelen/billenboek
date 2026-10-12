@@ -60,7 +60,7 @@ export function InstellingenWeergave() {
         <div className="flex flex-1 flex-col">
           <span className="text-base font-medium text-card-foreground">Gezin</span>
           <span className="text-sm text-muted-foreground">
-            Leden en uitnodigingslink beheren
+            Kinderen, leden en uitnodigingslink beheren
           </span>
         </div>
         <ChevronRight className="size-5 flex-none text-muted-foreground" aria-hidden />

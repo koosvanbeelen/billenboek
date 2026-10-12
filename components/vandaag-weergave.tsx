@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { ChevronLeft, ChevronRight, CalendarDays, NotebookPen } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,8 @@ import { ActieKnop } from "@/components/actie-knop"
 import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { TijdlijnSorteerKnop } from "@/components/tijdlijn-sorteer-knop"
+import { KindKiezer } from "@/components/kind-kiezer"
+import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
 import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
 import { useActieveTimer } from "@/lib/actieve-timer"
@@ -36,8 +38,10 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
   const [volgorde, setVolgorde] = useTijdlijnVolgorde()
   const [zichtbaar] = useZichtbareFormulieren()
   const [bezig, start] = useTransition()
-  const slaapTimer = useActieveTimer("slapen")
-  const huilTimer = useActieveTimer("huilen")
+  const { actiefKind } = useKinderen()
+  // Timers horen bij één kind: wisselen van kind laat de timer van het andere kind doorlopen.
+  const slaapTimer = useActieveTimer("slapen", actiefKind.id)
+  const huilTimer = useActieveTimer("huilen", actiefKind.id)
 
   const zichtbareSoorten = useMemo(
     () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
@@ -62,6 +66,15 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
       setData(nieuweData)
     })
   }
+
+  // Van kind gewisseld: dezelfde dag opnieuw ophalen voor het nieuwe kind.
+  const vorigKindId = useRef(actiefKind.id)
+  useEffect(() => {
+    if (vorigKindId.current === actiefKind.id) return
+    vorigKindId.current = actiefKind.id
+    ververs(data.datum)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actiefKind.id])
 
   function ga(dagen: number) {
     ververs(verschuifDatum(data.datum, dagen))
@@ -129,6 +142,9 @@ export function VandaagWeergave({ data: initieleData }: { data: DagGegevens }) {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Kindkiezer (alleen bij meerdere kinderen), boven de datumnavigatie */}
+      <KindKiezer />
+
       {/* Datumnavigatie */}
       <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="icon" onClick={() => ga(-1)} aria-label="Vorige dag">

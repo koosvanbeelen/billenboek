@@ -38,6 +38,7 @@ De database staat in `supabase/migrations/`. Draai de bestanden in Supabase → 
 | `20261009120000_account_beheer.sql` | Profielen (namen), account verwijderen |
 | `20261009130000_uitnodigingen_beveiliging.sql` | Uitnodigingscodes: 7 dagen geldig, rate limit, rollen |
 | `20261010000000_schema_verharding.sql` | Rechten aanscherpen, indexen op `gezin_id` |
+| `20261012000000_kinderen_en_kind_id.sql` | Kinderen per gezin (geslacht, geboortegewicht) en `kind_id` op alle registraties; koppelt bestaande gegevens aan een kind |
 
 Bestaande database? Draai alleen de bestanden die je nog niet hebt gedraaid. Maak vooraf een back-up. Draai de migraties één keer, op volgorde: de oudste zijn niet bedoeld om opnieuw te draaien nadat de nieuwere zijn uitgevoerd.
 
@@ -54,7 +55,7 @@ Een controle van het schema en de beveiliging krijg je met `supabase/controle/sc
 ```
 app/
   (app)/            ingelogd gedeelte: Vandaag, Geschiedenis, Notities, Instellingen
-  actions/          Server Actions (registraties, notities, gezinnen, account, auth)
+  actions/          Server Actions (registraties, notities, gezinnen, kinderen, account, auth)
   login, registreren, wachtwoord-vergeten, wachtwoord-resetten, gezin/   niet-ingelogd en onboarding
   auth/             callback en bevestiging van e-mail (callback, bevestigen)
 components/         schermen en herbruikbare onderdelen (ui/ = shadcn)
@@ -69,11 +70,13 @@ supabase/
   controle/         controlescripts
 ```
 
+**Kinderen:** elk gezin heeft minimaal één kind (verplicht bij het aanmelden; de `(app)`-layout stuurt iedereen zonder kind naar `/gezin/kind`). Kinderen beheer je onder Instellingen → Gezin. Elke registratie krijgt bij het opslaan `user_id`, `gezin_id` én `kind_id`. Het gekozen kind staat in de cookie `billenboek_kind`; de server controleert die altijd tegen de kinderen van het gezin en valt anders terug op het eerste kind (`lib/supabase/kind.ts`). Notities horen bij het gezin, niet bij een kind.
+
 **Beveiliging in het kort:** elke tabel heeft Row Level Security; leden zien alleen de rijen van hun eigen gezin (`is_gezin_lid(gezin_id)`). Gezin, lidmaatschap en uitnodigingen kunnen alleen via vaste database-functies worden gewijzigd, niet rechtstreeks. Ingelogde gebruikers worden in de proxy lokaal gecontroleerd (`getClaims`) en in pagina's en acties opnieuw met `getUser()`.
 
 ## Een nieuwe soort registratie toevoegen
 
-1. **Database:** tabel met `gezin_id`, `user_id`, `aangemaakt_op`, `bijgewerkt_op`, RLS aan, vier policies naar het voorbeeld van `voedingen`, en een index op `(gezin_id, datum_tijd)`. Zet het in een nieuwe migratie.
+1. **Database:** tabel met `gezin_id`, `kind_id`, `user_id`, `aangemaakt_op`, `bijgewerkt_op`, RLS aan, vier policies naar het voorbeeld van `voedingen`, de samengestelde foreign key `(kind_id, gezin_id)` naar `kinderen (id, gezin_id)` (`on delete cascade`), een `kind_id is not null`-controle en een index op `(gezin_id, kind_id, datum_tijd)`. Zet het in een nieuwe migratie.
 2. **Types:** de soort bij `Soort` en een `...Item`-type in `lib/types.ts`.
 3. **Mapper:** `...FromDb` en `...ToDb` in `lib/db/mappers.ts`, en opnemen in `tableMappers`.
 4. **Validatie:** Zod-schema en `...Input`-type in `lib/validations.ts`.

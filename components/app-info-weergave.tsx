@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useKindKeuze } from "@/lib/kind-voorkeur"
 import { CheckCircle2, DatabaseZap, Info, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { controleerDatabase } from "@/app/actions/systeem"
@@ -12,7 +11,6 @@ function waarde(value: string | null | undefined) {
 }
 
 export function AppInfoWeergave({ info }: { info: AppInfo }) {
-  const { kinderen } = useKindKeuze()
   const [bezig, setBezig] = useState(false)
   const [status, setStatus] = useState<{ ok: boolean; bericht: string } | null>(null)
 
@@ -69,7 +67,7 @@ export function AppInfoWeergave({ info }: { info: AppInfo }) {
           <div>
             <dt className="text-muted-foreground">Kind ID&apos;s</dt>
             <dd className="mt-1 flex flex-col gap-1 font-mono text-xs">
-              {kinderen.length > 0 ? kinderen.map((kind) => <span key={kind.id}>{waarde(kind.id)}</span>) : "-"}
+              {info.kinderen.length > 0 ? info.kinderen.map((kind) => <span key={kind.id}>{kind.id} ({kind.naam})</span>) : "-"}
             </dd>
           </div>
         </dl>

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { useKinderen } from "@/components/kind-provider"
 import { VoedingFormulier } from "@/components/formulieren/voeding-formulier"
 import { LuierFormulier } from "@/components/formulieren/luier-formulier"
 import { TemperatuurFormulier } from "@/components/formulieren/temperatuur-formulier"
@@ -87,6 +88,7 @@ export function RegistratieDialog({
   onVerwijder: () => void
 }) {
   const open = bewerking !== null
+  const { kinderen, actiefKind } = useKinderen()
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -98,6 +100,9 @@ export function RegistratieDialog({
                 {bewerking.record ? "Bewerk " : "Nieuwe "}
                 {titels[bewerking.soort].toLowerCase()}
               </DialogTitle>
+              {kinderen.length > 1 && (
+                <p className="text-sm text-muted-foreground">Voor {actiefKind.naam}</p>
+              )}
               <DialogDescription className="sr-only">
                 Formulier om een {titels[bewerking.soort].toLowerCase()} registratie op te slaan
               </DialogDescription>

@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useState } from "react"
 import { inputNaarDatum, nuInputWaarde } from "@/lib/datum"
 
+// Per kind een eigen set timers, zodat een lopende slaaptimer van het ene kind nooit bij het
+// andere kind wordt opgeslagen.
 const OPSLAG_SLEUTEL = "billenboek:actieve-timers"
 const WIJZIG_EVENT = "billenboek:actieve-timers-wijziging"
+
+const sleutelVoor = (kindId: number) => `${OPSLAG_SLEUTEL}:${kindId}`
 
 export type TimerSoort = "slapen" | "huilen"
 export type TimerStatus = "uit" | "lopend" | "wacht"
@@ -35,10 +39,10 @@ function isGeldig(waarde: unknown): waarde is TimerState {
   return isGeldigeMeting(w.slapen) && isGeldigeMeting(w.huilen)
 }
 
-function leesOpgeslagenWaarde(): TimerState {
+function leesOpgeslagenWaarde(kindId: number): TimerState {
   if (typeof window === "undefined") return STANDAARD
   try {
-    const ruw = window.localStorage.getItem(OPSLAG_SLEUTEL)
+    const ruw = window.localStorage.getItem(sleutelVoor(kindId))
     if (!ruw) return STANDAARD
     const geparsed = JSON.parse(ruw)
     const aangevuld = { ...STANDAARD, ...geparsed }
@@ -48,9 +52,9 @@ function leesOpgeslagenWaarde(): TimerState {
   }
 }
 
-function schrijf(waarde: TimerState) {
-  window.localStorage.setItem(OPSLAG_SLEUTEL, JSON.stringify(waarde))
-  window.dispatchEvent(new CustomEvent(WIJZIG_EVENT, { detail: waarde }))
+function schrijf(kindId: number, waarde: TimerState) {
+  window.localStorage.setItem(sleutelVoor(kindId), JSON.stringify(waarde))
+  window.dispatchEvent(new CustomEvent(WIJZIG_EVENT, { detail: { kindId, waarde } }))
 }
 
 // Verstreken hele seconden sinds een opgeslagen starttijd, met dezelfde
@@ -73,50 +77,50 @@ export function verstrekenSeconden(sinds: string): number {
  * - Nogmaals tikken tijdens "wacht" levert dezelfde meting opnieuw op, zodat
  *   het (nog niet opgeslagen) formulier opnieuw geopend kan worden.
  */
-export function useActieveTimer(soort: TimerSoort) {
+export function useActieveTimer(soort: TimerSoort, kindId: number) {
   const [alle, setAlle] = useState<TimerState>(STANDAARD)
 
   useEffect(() => {
-    setAlle(leesOpgeslagenWaarde())
+    setAlle(leesOpgeslagenWaarde(kindId))
     function opWijziging(event: Event) {
-      const detail = (event as CustomEvent<TimerState>).detail
-      if (isGeldig(detail)) setAlle(detail)
+      const detail = (event as CustomEvent<{ kindId: number; waarde: TimerState }>).detail
+      if (detail?.kindId === kindId && isGeldig(detail.waarde)) setAlle(detail.waarde)
     }
     window.addEventListener(WIJZIG_EVENT, opWijziging)
     return () => window.removeEventListener(WIJZIG_EVENT, opWijziging)
-  }, [])
+  }, [kindId])
 
   const entry = alle[soort]
   const status: TimerStatus = !entry ? "uit" : entry.einde === null ? "lopend" : "wacht"
 
   const beginTimer = useCallback(() => {
     const nieuw: TimerState = {
-      ...leesOpgeslagenWaarde(),
+      ...leesOpgeslagenWaarde(kindId),
       [soort]: { start: nuInputWaarde(), einde: null },
     }
-    schrijf(nieuw)
+    schrijf(kindId, nieuw)
     setAlle(nieuw)
-  }, [soort])
+  }, [soort, kindId])
 
   // Zet de eindtijd maar bewaart de meting (status wordt "wacht").
   const stopTimer = useCallback((): { start: string; einde: string } | null => {
-    const huidig = leesOpgeslagenWaarde()
+    const huidig = leesOpgeslagenWaarde(kindId)
     const bestaand = huidig[soort]
     if (!bestaand) return null
     const einde = bestaand.einde ?? nuInputWaarde()
     const nieuw: TimerState = { ...huidig, [soort]: { start: bestaand.start, einde } }
-    schrijf(nieuw)
+    schrijf(kindId, nieuw)
     setAlle(nieuw)
     return { start: bestaand.start, einde }
-  }, [soort])
+  }, [soort, kindId])
 
   // Wist de meting volledig: na succesvol opslaan, of wanneer de gebruiker
   // 'm bewust weggooit.
   const wisTimer = useCallback(() => {
-    const nieuw: TimerState = { ...leesOpgeslagenWaarde(), [soort]: null }
-    schrijf(nieuw)
+    const nieuw: TimerState = { ...leesOpgeslagenWaarde(kindId), [soort]: null }
+    schrijf(kindId, nieuw)
     setAlle(nieuw)
-  }, [soort])
+  }, [soort, kindId])
 
   return {
     status,
