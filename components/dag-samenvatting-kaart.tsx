@@ -1,8 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { Milk, Baby, Thermometer, ChevronRight } from "lucide-react"
-import { formatDatumLang } from "@/lib/datum"
+import {
+  Milk,
+  Baby,
+  Thermometer,
+  ChevronRight,
+  Hourglass,
+  Layers,
+  FlaskConical,
+  Moon,
+  Frown,
+} from "lucide-react"
+import { formatDatumLang, formatDuur } from "@/lib/datum"
 import { TemperatuurIndicator } from "@/components/temperatuur-indicator"
 import type { DagSamenvatting } from "@/app/actions/geschiedenis"
 import type { TellerId } from "@/lib/teller-voorkeur"
@@ -40,6 +50,14 @@ export function DagSamenvattingKaart({ dag, zichtbareTellers }: Props) {
           </div>
         )}
 
+        {zichtbareTellers.includes("borsttijd") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Hourglass className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{dag.voedingenMinuten}m</div>
+            <div className="text-xs text-muted-foreground">borsttijd</div>
+          </div>
+        )}
+
         {zichtbareTellers.includes("poepluier") && (
           <div className="flex flex-col items-center gap-1 text-center">
             <Baby className="size-4 text-primary" aria-hidden />
@@ -53,6 +71,38 @@ export function DagSamenvattingKaart({ dag, zichtbareTellers }: Props) {
             <Baby className="size-4 text-primary" aria-hidden />
             <div className="text-sm font-bold text-foreground">{dag.luiersPlas}</div>
             <div className="text-xs text-muted-foreground">plas</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("totaalLuiers") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Layers className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{dag.luiersPoep + dag.luiersPlas}</div>
+            <div className="text-xs text-muted-foreground">luiers</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("mlGekolfd") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <FlaskConical className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{dag.mlGekolfd}ml</div>
+            <div className="text-xs text-muted-foreground">gekolfd</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("totaleSlaaptijd") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Moon className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{formatDuur(dag.slaapMinuten)}</div>
+            <div className="text-xs text-muted-foreground">slaap</div>
+          </div>
+        )}
+
+        {zichtbareTellers.includes("totaleHuiltijd") && (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Frown className="size-4 text-primary" aria-hidden />
+            <div className="text-sm font-bold text-foreground">{formatDuur(dag.huilMinuten)}</div>
+            <div className="text-xs text-muted-foreground">huiltijd</div>
           </div>
         )}
 
