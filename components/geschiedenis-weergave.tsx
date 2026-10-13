@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { ActieKnop } from "@/components/actie-knop"
+import { DagTellersRij } from "@/components/dag-tellers"
 import { TijdlijnItem } from "@/components/tijdlijn-item"
 import { LegeStatus } from "@/components/lege-status"
 import { BevestigDialog } from "@/components/bevestig-dialog"
@@ -17,16 +18,12 @@ import { DagSamenvattingKaart } from "@/components/dag-samenvatting-kaart"
 import { KindKiezer } from "@/components/kind-kiezer"
 import { useKinderen } from "@/components/kind-provider"
 import { useTijdlijnVolgorde } from "@/lib/tijdlijn-voorkeur"
-import {
-  ALLE_TELLERS,
-  MAX_TELLERS,
-  useZichtbareTellers,
-  type TellerId,
-} from "@/lib/teller-voorkeur"
-import { tellerMeta } from "@/lib/tellers"
+import { ALLE_SOORTEN, useZichtbareFormulieren } from "@/lib/formulier-voorkeur"
+import { useActieveTimer } from "@/lib/actieve-timer"
+import { soortMeta } from "@/lib/soorten"
 import { verwijderRegistratie } from "@/app/actions/registraties"
 import { getGeschiedenis } from "@/app/actions/geschiedenis"
-import { verschuifDatum, isVandaag, formatDatumLang } from "@/lib/datum"
+import { verschuifDatum, isVandaag, vandaagDatum, formatDatumLang, duurInMinuten, formatDuur } from "@/lib/datum"
 import type { DagGegevens, Soort, TijdlijnItem as Item } from "@/lib/types"
 
 type Props = {
@@ -47,28 +44,15 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   >(null)
   const [bezig, start] = useTransition()
   const [volgorde] = useTijdlijnVolgorde()
-  const [zichtbareTellers, zetTeller] = useZichtbareTellers()
+  const [zichtbaar] = useZichtbareFormulieren()
   const { actiefKind } = useKinderen()
-  const geschiedenisTellers: TellerId[] = ALLE_TELLERS.filter(
-    (id) => id !== "tijdSindsVoeding" && id !== "tijdSindsLuier",
-  )
-  const zichtbareGeschiedenisTellers = zichtbareTellers.filter((id) =>
-    geschiedenisTellers.includes(id),
-  )
+  const slaapTimer = useActieveTimer("slapen", actiefKind.id)
+  const huilTimer = useActieveTimer("huilen", actiefKind.id)
 
-  function wijzigTellers(waarden: string[]) {
-    const gekozen = waarden as TellerId[]
-    if (gekozen.length > MAX_TELLERS) {
-      toast.error(`Je kunt maximaal ${MAX_TELLERS} tellers selecteren`)
-      return
-    }
-    const geselecteerd = new Set(gekozen)
-    for (const id of geschiedenisTellers) {
-      if (geselecteerd.has(id) !== zichtbareTellers.includes(id)) {
-        zetTeller(id, geselecteerd.has(id))
-      }
-    }
-  }
+  const zichtbareSoorten = useMemo(
+    () => ALLE_SOORTEN.filter((s) => zichtbaar[s]),
+    [zichtbaar],
+  )
 
   // Respecteer dezelfde tijdlijn-voorkeur als "Vandaag" (in te stellen via
   // Instellingen).
@@ -110,6 +94,34 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
     router.push(`/geschiedenis?datum=${verschuifDatum(dag, dagen)}&detail=true`)
   }
 
+  function nieuw(soort: Soort) {
+    setBewerking({ soort } as Bewerking)
+  }
+
+  // Zelfde live start/stop-timer als op "Vandaag" — alleen zinvol als deze
+  // dag ook echt vandaag is. Tikken opent altijd het formulier; "terugkeren"
+  // naar het formulier terwijl de timer loopt stopt 'm en berekent de
+  // eindtijd (start + verstreken tijd).
+  function tikTimer(soort: "slapen" | "huilen") {
+    const timer = soort === "slapen" ? slaapTimer : huilTimer
+    if (timer.status === "lopend") {
+      const voorinvulling = timer.stopTimer()
+      if (voorinvulling) {
+        setBewerking({ soort, voorinvulling, wisTimer: timer.wisTimer } as Bewerking)
+      }
+      return
+    }
+    if (timer.status === "wacht" && timer.entry?.einde) {
+      setBewerking({
+        soort,
+        voorinvulling: { start: timer.entry.start, einde: timer.entry.einde },
+        wisTimer: timer.wisTimer,
+      } as Bewerking)
+      return
+    }
+    setBewerking({ soort, onStartTimer: timer.beginTimer } as Bewerking)
+  }
+
   function bewerk(item: Item) {
     setBewerking({ soort: item.soort, record: item.record } as Bewerking)
   }
@@ -147,36 +159,6 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
 
         <KindKiezer />
 
-        <section aria-labelledby="geschiedenis-tellerfilters" className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-
-          </div>
-          <ToggleGroup
-            multiple
-            value={zichtbareGeschiedenisTellers}
-            onValueChange={wijzigTellers}
-            variant="outline"
-            size="sm"
-            spacing={1}
-            className="flex w-full flex-wrap gap-1"
-            aria-label="Tellers voor geschiedenis selecteren"
-          >
-            {geschiedenisTellers.map((id) => {
-              const meta = tellerMeta[id]
-              const Icon = meta.icon
-              return (
-                <ToggleGroupItem key={id} value={id} aria-label={meta.label}>
-                  <Icon data-icon="inline-start" aria-hidden />
-                  {meta.label}
-                </ToggleGroupItem>
-              )
-            })}
-          </ToggleGroup>
-          <p className="text-xs text-muted-foreground">
-            Kies maximaal {MAX_TELLERS} tellers voor de kaarten hieronder.
-          </p>
-        </section>
-
         {samenvattingen && samenvattingen.length === 0 ? (
           <LegeStatus
             icon={Calendar}
@@ -186,11 +168,7 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
         ) : samenvattingen ? (
           <div className={bezig ? "flex flex-col gap-2 opacity-60" : "flex flex-col gap-2"}>
             {samenvattingen.map((s) => (
-              <DagSamenvattingKaart
-                key={s.datum}
-                dag={s}
-                zichtbareTellers={zichtbareTellers}
-              />
+              <DagSamenvattingKaart key={s.datum} dag={s} />
             ))}
           </div>
         ) : (
@@ -247,6 +225,46 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
           <ChevronRight className="size-5" />
         </Button>
       </div>
+
+      <DagTellersRij tellers={data.tellers} />
+
+      {/* Actieknoppen voor deze dag */}
+      {zichtbareSoorten.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {zichtbareSoorten.map((soort) => {
+            const meta = soortMeta[soort]
+            const metTimer =
+              isVandaag(dag) && (soort === "slapen" || soort === "huilen")
+            if (metTimer) {
+              const timer = soort === "slapen" ? slaapTimer : huilTimer
+              const status = timer.status === "uit" ? undefined : timer.status
+              const duurLabel =
+                timer.status === "wacht" && timer.entry?.einde
+                  ? formatDuur(duurInMinuten(timer.entry.start, timer.entry.einde))
+                  : undefined
+              return (
+                <ActieKnop
+                  key={soort}
+                  label={meta.label}
+                  icon={meta.icon}
+                  status={status}
+                  sinds={timer.startTijd}
+                  duurLabel={duurLabel}
+                  onClick={() => tikTimer(soort)}
+                />
+              )
+            }
+            return (
+              <ActieKnop
+                key={soort}
+                label={meta.label}
+                icon={meta.icon}
+                onClick={() => nieuw(soort)}
+              />
+            )
+          })}
+        </div>
+      )}
 
       {/* Tijdlijn */}
       <section className="flex flex-col gap-3">

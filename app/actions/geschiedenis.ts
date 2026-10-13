@@ -13,9 +13,6 @@ export type DagSamenvatting = {
   luiersPoep: number
   luiersPlas: number
   gemiddeldeTemperatuur: number | null
-  mlGekolfd: number
-  slaapMinuten: number
-  huilMinuten: number
 }
 
 /**
@@ -50,14 +47,9 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
     return (data ?? []).map((row) => fromDbRow(table, row))
   }
 
-  const [vRows, lRows, tRows, kRows, sRows, hRows] = await Promise.all([
-    query("voedingen"),
-    query("luiers"),
-    query("temperaturen"),
-    query("kolven"),
-    query("slapen"),
-    query("huilen"),
-  ])
+  const vRows = await query("voedingen")
+  const lRows = await query("luiers")
+  const tRows = await query("temperaturen")
 
   // Groepeer per dag
   const perDag = new Map<
@@ -68,9 +60,6 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
       luiersPoep: number
       luiersPlas: number
       temperaturen: number[]
-      mlGekolfd: number
-      slaapMinuten: number
-      huilMinuten: number
     }
   >()
 
@@ -83,9 +72,6 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
       luiersPoep: 0,
       luiersPlas: 0,
       temperaturen: [],
-      mlGekolfd: 0,
-      slaapMinuten: 0,
-      huilMinuten: 0,
     }
     entry.voedingenAantal++
     if (v.duurMinuten) entry.voedingenMinuten += v.duurMinuten
@@ -101,9 +87,6 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
       luiersPoep: 0,
       luiersPlas: 0,
       temperaturen: [],
-      mlGekolfd: 0,
-      slaapMinuten: 0,
-      huilMinuten: 0,
     }
     if (l.poep) entry.luiersPoep++
     if (l.plas) entry.luiersPlas++
@@ -119,44 +102,11 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
       luiersPoep: 0,
       luiersPlas: 0,
       temperaturen: [],
-      mlGekolfd: 0,
-      slaapMinuten: 0,
-      huilMinuten: 0,
     }
     const temp = typeof t.temperatuur === "string" 
       ? parseFloat(t.temperatuur) 
       : t.temperatuur
     entry.temperaturen.push(temp)
-    perDag.set(d, entry)
-  }
-
-  for (const k of kRows) {
-    const d = new Date(k.datumTijd).toISOString().slice(0, 10)
-    const entry = perDag.get(d) ?? {
-      voedingenAantal: 0, voedingenMinuten: 0, luiersPoep: 0, luiersPlas: 0,
-      temperaturen: [], mlGekolfd: 0, slaapMinuten: 0, huilMinuten: 0,
-    }
-    entry.mlGekolfd += k.hoeveelheidMl ?? 0
-    perDag.set(d, entry)
-  }
-
-  for (const s of sRows) {
-    const d = new Date(s.datumTijd).toISOString().slice(0, 10)
-    const entry = perDag.get(d) ?? {
-      voedingenAantal: 0, voedingenMinuten: 0, luiersPoep: 0, luiersPlas: 0,
-      temperaturen: [], mlGekolfd: 0, slaapMinuten: 0, huilMinuten: 0,
-    }
-    entry.slaapMinuten += s.duurMinuten ?? 0
-    perDag.set(d, entry)
-  }
-
-  for (const h of hRows) {
-    const d = new Date(h.datumTijd).toISOString().slice(0, 10)
-    const entry = perDag.get(d) ?? {
-      voedingenAantal: 0, voedingenMinuten: 0, luiersPoep: 0, luiersPlas: 0,
-      temperaturen: [], mlGekolfd: 0, slaapMinuten: 0, huilMinuten: 0,
-    }
-    entry.huilMinuten += h.duurMinuten ?? 0
     perDag.set(d, entry)
   }
 
@@ -178,8 +128,5 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
               ).toFixed(1)
             )
           : null,
-      mlGekolfd: data.mlGekolfd,
-      slaapMinuten: data.slaapMinuten,
-      huilMinuten: data.huilMinuten,
     }))
 }

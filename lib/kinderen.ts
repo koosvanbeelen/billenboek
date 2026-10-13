@@ -12,7 +12,7 @@ export const GESLACHT_LABEL: Record<Geslacht, string> = {
 }
 
 export type Kind = {
-  id: number
+  id: string
   naam: string
   // "yyyy-MM-dd"
   geboortedatum: string | null
@@ -24,6 +24,10 @@ export type Kind = {
 // merken dat een ander tabblad van kind is gewisseld. De waarde wordt op de server altijd
 // gecontroleerd tegen de kinderen van het gezin, dus er valt niets mee te manipuleren.
 export const KIND_COOKIE = "billenboek_kind"
+
+// kind_id is, net als gezin_id, een uuid als tekst.
+export const isKindId = (waarde: unknown): waarde is string =>
+  typeof waarde === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(waarde)
 
 // Invoer uit het formulier: alles is tekst, optionele velden mogen leeg zijn.
 export const kindSchema = z.object({

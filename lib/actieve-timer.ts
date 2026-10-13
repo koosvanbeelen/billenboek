@@ -8,7 +8,7 @@ import { inputNaarDatum, nuInputWaarde } from "@/lib/datum"
 const OPSLAG_SLEUTEL = "billenboek:actieve-timers"
 const WIJZIG_EVENT = "billenboek:actieve-timers-wijziging"
 
-const sleutelVoor = (kindId: number) => `${OPSLAG_SLEUTEL}:${kindId}`
+const sleutelVoor = (kindId: string) => `${OPSLAG_SLEUTEL}:${kindId}`
 
 export type TimerSoort = "slapen" | "huilen"
 export type TimerStatus = "uit" | "lopend" | "wacht"
@@ -39,7 +39,7 @@ function isGeldig(waarde: unknown): waarde is TimerState {
   return isGeldigeMeting(w.slapen) && isGeldigeMeting(w.huilen)
 }
 
-function leesOpgeslagenWaarde(kindId: number): TimerState {
+function leesOpgeslagenWaarde(kindId: string): TimerState {
   if (typeof window === "undefined") return STANDAARD
   try {
     const ruw = window.localStorage.getItem(sleutelVoor(kindId))
@@ -52,7 +52,7 @@ function leesOpgeslagenWaarde(kindId: number): TimerState {
   }
 }
 
-function schrijf(kindId: number, waarde: TimerState) {
+function schrijf(kindId: string, waarde: TimerState) {
   window.localStorage.setItem(sleutelVoor(kindId), JSON.stringify(waarde))
   window.dispatchEvent(new CustomEvent(WIJZIG_EVENT, { detail: { kindId, waarde } }))
 }
@@ -77,13 +77,13 @@ export function verstrekenSeconden(sinds: string): number {
  * - Nogmaals tikken tijdens "wacht" levert dezelfde meting opnieuw op, zodat
  *   het (nog niet opgeslagen) formulier opnieuw geopend kan worden.
  */
-export function useActieveTimer(soort: TimerSoort, kindId: number) {
+export function useActieveTimer(soort: TimerSoort, kindId: string) {
   const [alle, setAlle] = useState<TimerState>(STANDAARD)
 
   useEffect(() => {
     setAlle(leesOpgeslagenWaarde(kindId))
     function opWijziging(event: Event) {
-      const detail = (event as CustomEvent<{ kindId: number; waarde: TimerState }>).detail
+      const detail = (event as CustomEvent<{ kindId: string; waarde: TimerState }>).detail
       if (detail?.kindId === kindId && isGeldig(detail.waarde)) setAlle(detail.waarde)
     }
     window.addEventListener(WIJZIG_EVENT, opWijziging)

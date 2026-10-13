@@ -8,7 +8,7 @@ export const KIND_KOLOMMEN = "id, naam, geboortedatum, geslacht, geboortegewicht
 
 export function kindVanRij(rij: Record<string, any>): Kind {
   return {
-    id: rij.id as number,
+    id: rij.id as string,
     naam: rij.naam as string,
     geboortedatum: (rij.geboortedatum as string | null) ?? null,
     geslacht: GESLACHTEN.includes(rij.geslacht) ? (rij.geslacht as Geslacht) : null,
@@ -34,6 +34,7 @@ export const getKinderen = cache(async (): Promise<Kind[]> => {
     .from("kinderen")
     .select(KIND_KOLOMMEN)
     .eq("gezin_id", gezinId)
+    .order("aangemaakt_op", { ascending: true })
     .order("id", { ascending: true })
   if (error) throw new Error("Kinderen konden niet worden geladen.")
   return (data ?? []).map(kindVanRij)
@@ -44,10 +45,10 @@ export const getKinderen = cache(async (): Promise<Kind[]> => {
 export const getActiefKind = cache(async (): Promise<Kind> => {
   const kinderen = await getKinderen()
   if (kinderen.length === 0) throw new GeenKindFout()
-  const opgeslagen = Number((await cookies()).get(KIND_COOKIE)?.value)
+  const opgeslagen = (await cookies()).get(KIND_COOKIE)?.value
   return kinderen.find((k) => k.id === opgeslagen) ?? kinderen[0]
 })
 
-export async function getActiefKindId(): Promise<number> {
+export async function getActiefKindId(): Promise<string> {
   return (await getActiefKind()).id
 }

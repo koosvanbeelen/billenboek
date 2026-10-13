@@ -4,22 +4,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { zetActiefKind } from "@/app/actions/kinderen"
-import { KIND_COOKIE, type Kind } from "@/lib/kinderen"
+import { isKindId, KIND_COOKIE, type Kind } from "@/lib/kinderen"
 
 type KindContext = {
   kinderen: Kind[]
   actiefKind: Kind
-  kiesKind: (id: number) => Promise<void>
+  kiesKind: (id: string) => Promise<void>
 }
 
 const Context = createContext<KindContext | null>(null)
 
-function leesKindCookie(): number | null {
+function leesKindCookie(): string | null {
   if (typeof document === "undefined") return null
   const treffer = document.cookie.split("; ").find((c) => c.startsWith(`${KIND_COOKIE}=`))
   if (!treffer) return null
-  const waarde = Number(treffer.split("=")[1])
-  return Number.isInteger(waarde) ? waarde : null
+  const waarde = decodeURIComponent(treffer.split("=")[1] ?? "")
+  return isKindId(waarde) ? waarde : null
 }
 
 // Brengt de kinderen van het gezin en het gekozen kind (beide komen uit de server-layout) bij
@@ -30,7 +30,7 @@ export function KindProvider({
   children,
 }: {
   kinderen: Kind[]
-  actiefKindId: number
+  actiefKindId: string
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -44,7 +44,7 @@ export function KindProvider({
   const actiefKind = kinderen.find((k) => k.id === actiefId) ?? kinderen[0]
 
   const kiesKind = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       if (id === actiefRef.current) return
       try {
         const uitkomst = await zetActiefKind(id)

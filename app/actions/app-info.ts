@@ -8,7 +8,7 @@ export type AppInfo = {
   versie: string
   userId: string | null
   gezinId: string | null
-  kinderen: { id: number; naam: string }[]
+  kinderen: { id: string; naam: string }[]
 }
 
 export async function laadAppInfo(versie: string): Promise<AppInfo> {

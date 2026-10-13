@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getActiefGezinId } from "@/lib/supabase/gezin"
 import { KIND_KOLOMMEN, kindVanRij } from "@/lib/supabase/kind"
-import { KIND_COOKIE, kindSchema, type Kind, type KindInvoer } from "@/lib/kinderen"
+import { isKindId, KIND_COOKIE, kindSchema, type Kind, type KindInvoer } from "@/lib/kinderen"
 import { eersteFout, type Uitkomst } from "@/lib/account-validatie"
 import { logFout } from "@/lib/fouten"
 
@@ -60,10 +60,10 @@ export async function voegKindToe(invoer: KindInvoer): Promise<Uitkomst<{ kind: 
   return { ok: true, kind: kindVanRij(data) }
 }
 
-export async function werkKindBij(id: number, invoer: KindInvoer): Promise<Uitkomst> {
+export async function werkKindBij(id: string, invoer: KindInvoer): Promise<Uitkomst> {
   const parsed = kindSchema.safeParse(invoer)
   if (!parsed.success) return { ok: false, fout: eersteFout(parsed.error) }
-  if (!Number.isInteger(id)) return { ok: false, fout: "Onbekend kind." }
+  if (!isKindId(id)) return { ok: false, fout: "Onbekend kind." }
 
   const supabase = await createClient()
   const gezinId = await getActiefGezinId()
@@ -85,8 +85,8 @@ export async function werkKindBij(id: number, invoer: KindInvoer): Promise<Uitko
 
 // Verwijdert het kind én alle registraties van dat kind (foreign key met on delete cascade).
 // Het laatste kind van een gezin kan niet worden verwijderd.
-export async function verwijderKind(id: number): Promise<Uitkomst> {
-  if (!Number.isInteger(id)) return { ok: false, fout: "Onbekend kind." }
+export async function verwijderKind(id: string): Promise<Uitkomst> {
+  if (!isKindId(id)) return { ok: false, fout: "Onbekend kind." }
 
   const supabase = await createClient()
   const gezinId = await getActiefGezinId()
@@ -115,7 +115,7 @@ export async function verwijderKind(id: number): Promise<Uitkomst> {
 
   // Stond dit kind gekozen? Dan valt de app vanzelf terug op het eerste kind.
   const cookieStore = await cookies()
-  if (Number(cookieStore.get(KIND_COOKIE)?.value) === id) cookieStore.delete(KIND_COOKIE)
+  if (cookieStore.get(KIND_COOKIE)?.value === id) cookieStore.delete(KIND_COOKIE)
 
   herlaad()
   return { ok: true }
@@ -123,8 +123,8 @@ export async function verwijderKind(id: number): Promise<Uitkomst> {
 
 // Onthoudt welk kind is gekozen. De registratie-acties lezen dit op de server, zodat de
 // formulieren niet hoeven te weten welk kind actief is.
-export async function zetActiefKind(id: number): Promise<Uitkomst> {
-  if (!Number.isInteger(id)) return { ok: false, fout: "Onbekend kind." }
+export async function zetActiefKind(id: string): Promise<Uitkomst> {
+  if (!isKindId(id)) return { ok: false, fout: "Onbekend kind." }
 
   const supabase = await createClient()
   const gezinId = await getActiefGezinId()
