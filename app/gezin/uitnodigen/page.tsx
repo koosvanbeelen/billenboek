@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import { GezinUitnodiging } from "@/components/gezin-uitnodiging"
 import { laadGezinsgegevens } from "@/app/actions/gezinnen"
 import { createClient } from "@/lib/supabase/server"
@@ -32,6 +33,14 @@ export default async function GezinUitnodigenPage({
       </header>
 
       <GezinUitnodiging code={code} gezinNaam={gegevens.gezin.naam} />
+
+      <Button
+        className="h-12 w-full text-base"
+        render={<a href="/" />}
+        nativeButton={false}
+      >
+        Verder naar Billenboek
+      </Button>
     </main>
   )
 }
