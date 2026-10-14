@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server"
 import { getActiefGezinId } from "@/lib/supabase/gezin"
 import { getActiefKindId } from "@/lib/supabase/kind"
 import { vandaagDatum } from "@/lib/datum"
-import { fromDbRow } from "@/lib/db/mappers"
+import { fromDbRow, type MappedTable } from "@/lib/db/mappers"
+import { SOORTEN } from "@/lib/registratie-soorten"
+import { dbFout } from "@/lib/fouten"
 
 export type DagSamenvatting = {
   datum: string // "yyyy-MM-dd"
@@ -30,7 +32,7 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
     .toISOString()
     .slice(0, 10)
   const vanDatum = new Date(zestigDagenGeleden + "T00:00:00Z")
-  const totDatum = new Date(vandaag + "T23:59:59Z")
+  const totDatum = new Date(vandaag + "T23:59:59.999Z")
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,15 +40,22 @@ export async function getGeschiedenis(): Promise<DagSamenvatting[]> {
 
   const gezinId = await getActiefGezinId()
   const kindId = await getActiefKindId()
-  const query = async (table: string): Promise<Record<string, any>[]> => {
+  // Let op: slapen en huilen hebben geen "datum_tijd" maar een "start"-kolom. De juiste
+  // tijdkolom per tabel staat in SOORTEN (dezelfde bron als getDagGegevens).
+  const tijdkolomPerTabel = Object.fromEntries(
+    Object.values(SOORTEN).map((s) => [s.tabel, s.tijdkolom]),
+  ) as Record<MappedTable, "datum_tijd" | "start">
+
+  const query = async (table: MappedTable): Promise<Record<string, any>[]> => {
+    const tijdkolom = tijdkolomPerTabel[table]
     const { data, error } = await supabase
       .from(table)
       .select("*")
       .eq("gezin_id", gezinId)
       .eq("kind_id", kindId)
-      .gte("datum_tijd", vanDatum.toISOString())
-      .lte("datum_tijd", totDatum.toISOString())
-    if (error) throw error
+      .gte(tijdkolom, vanDatum.toISOString())
+      .lte(tijdkolom, totDatum.toISOString())
+    if (error) throw dbFout("geschiedenis", error)
     return (data ?? []).map((row) => fromDbRow(table, row))
   }
 
