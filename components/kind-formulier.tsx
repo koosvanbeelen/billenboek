@@ -100,7 +100,6 @@ export function KindFormulier({ beginwaarden = LEEG_KIND, opslaanLabel, onOpslaa
             { waarde: "", label: "Niet invullen" },
             { waarde: "jongen", label: "Jongen" },
             { waarde: "meisje", label: "Meisje" },
-            { waarde: "anders", label: "Anders" },
           ]}
           onChange={(waarde) => zet("geslacht", waarde)}
         />
