@@ -58,7 +58,7 @@ export const SOORTEN: Record<Soort, SoortConfig> = {
     tabel: "luiers",
     tijdkolom: "datum_tijd",
     schema: luierSchema,
-    naarRij: (d) => ({ datumTijd: tijdstip(d.datumTijd), plas: d.plas, poep: d.poep, schoon: d.schoon }),
+    naarRij: (d) => ({ datumTijd: tijdstip(d.datumTijd), plas: d.plas, poep: d.poep, schoon: d.schoon, notitie: d.notitie || null }),
   }),
   temperatuur: soort({
     tabel: "temperaturen",

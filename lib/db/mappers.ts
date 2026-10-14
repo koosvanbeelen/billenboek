@@ -18,8 +18,8 @@ const toIso = (value: string | Date | null | undefined): string => new Date(valu
 export const voedingFromDb = (row: DbRow): VoedingItem => ({ id: row.id, datumTijd: toIso(row.datum_tijd), type: row.type, borst: row.borst, duurMinuten: row.duur_minuten, hoeveelheidMl: row.hoeveelheid_ml, notitie: row.notitie })
 export const voedingToDb = (row: DbRow) => ({ datum_tijd: row.datumTijd, type: row.type, borst: row.borst, duur_minuten: row.duurMinuten, hoeveelheid_ml: row.hoeveelheidMl, notitie: row.notitie })
 
-export const luierFromDb = (row: DbRow): LuierItem => ({ id: row.id, datumTijd: toIso(row.datum_tijd), plas: row.plas, poep: row.poep, schoon: row.schoon })
-export const luierToDb = (row: DbRow) => ({ datum_tijd: row.datumTijd, plas: row.plas, poep: row.poep, schoon: row.schoon })
+export const luierFromDb = (row: DbRow): LuierItem => ({ id: row.id, datumTijd: toIso(row.datum_tijd), plas: row.plas, poep: row.poep, schoon: row.schoon, notitie: row.notitie ?? null })
+export const luierToDb = (row: DbRow) => ({ datum_tijd: row.datumTijd, plas: row.plas, poep: row.poep, schoon: row.schoon, notitie: row.notitie })
 
 export const temperatuurFromDb = (row: DbRow): TemperatuurItem => ({ id: row.id, datumTijd: toIso(row.datum_tijd), temperatuur: Number(row.temperatuur) })
 export const temperatuurToDb = (row: DbRow) => ({ datum_tijd: row.datumTijd, temperatuur: row.temperatuur })

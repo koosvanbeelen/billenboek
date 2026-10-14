@@ -1,6 +1,6 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
+import { Loader2, Share2, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useKinderen } from "@/components/kind-provider"
+import { useDeelKaart } from "@/hooks/use-deel-kaart"
 import { VoedingFormulier } from "@/components/formulieren/voeding-formulier"
 import { LuierFormulier } from "@/components/formulieren/luier-formulier"
 import { TemperatuurFormulier } from "@/components/formulieren/temperatuur-formulier"
@@ -89,6 +90,7 @@ export function RegistratieDialog({
 }) {
   const open = bewerking !== null
   const { kinderen, actiefKind } = useKinderen()
+  const { deel, bezig } = useDeelKaart()
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -107,27 +109,52 @@ export function RegistratieDialog({
                 Formulier om een {titels[bewerking.soort].toLowerCase()} registratie op te slaan
               </DialogDescription>
             </div>
-            {(bewerking.record || heeftTimerMeting(bewerking)) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => {
-                  if (bewerking.record) {
-                    onVerwijder()
-                    return
+            <div className="flex flex-none items-center gap-1">
+              {bewerking.record && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={bezig}
+                  onClick={() =>
+                    deel({
+                      soort: bewerking.soort,
+                      id: bewerking.record!.id,
+                      datumTijd: bewerking.record!.datumTijd,
+                      record: bewerking.record,
+                    } as Parameters<typeof deel>[0])
                   }
-                  if (bewerking.soort === "slapen" || bewerking.soort === "huilen") {
-                    bewerking.wisTimer?.()
-                  }
-                  onClose()
-                }}
-                aria-label={bewerking.record ? "Verwijderen" : "Meting verwijderen"}
-                className="flex-none text-destructive hover:text-destructive"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            )}
+                  aria-label="Delen"
+                >
+                  {bezig ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Share2 className="size-4" />
+                  )}
+                </Button>
+              )}
+              {(bewerking.record || heeftTimerMeting(bewerking)) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => {
+                    if (bewerking.record) {
+                      onVerwijder()
+                      return
+                    }
+                    if (bewerking.soort === "slapen" || bewerking.soort === "huilen") {
+                      bewerking.wisTimer?.()
+                    }
+                    onClose()
+                  }}
+                  aria-label={bewerking.record ? "Verwijderen" : "Meting verwijderen"}
+                  className="flex-none text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {bewerking.soort === "voeding" && (

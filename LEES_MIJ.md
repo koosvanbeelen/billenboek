@@ -1,45 +1,37 @@
-# Herstel na de mislukte Vercel-build
+# Luier-notitie en kaart delen (van billenboek-neon naar billenboek)
 
-Branch: `herstel-v0`, gemaakt vanaf je echte `main` (commit 1a3ba90). Vijf bestanden. Geen SQL, geen bestanden verwijderen, geen nieuwe pakketten.
+Branch: `luier-notitie-kaart-delen`, gemaakt vanaf `main` (c40df7f). `tsc --noEmit` slaagt zonder fouten.
 
-## Wat er misging (mijn fout)
+## Wat is overgenomen
 
-Mijn laatste zip was gebouwd vanaf een kloon van vóór de v0-wijzigingen van 10 oktober (PR #15 t/m #20, onder meer "Move logout to account settings", de gezin- en app-info-subpagina's en de eerste-gebruik-instellingen). Daardoor heeft de zip in vijf bestanden v0's wijzigingen overschreven:
+- **9a0070e Notitie luiers**: optioneel notitieveld in het luierformulier, zichtbaar op de tijdlijnkaart.
+- **fabc6d9 deelbare-kaart.tsx**: logo + "Billenboek" in de voet van de kaart. In `billenboek` bestond de deelfunctie nog helemaal niet, dus ook de commits 482714b en 200f8e9 waar fabc6d9 op voortbouwt zijn meegenomen: `components/deelbare-kaart.tsx`, `hooks/use-deel-kaart.tsx`, de deelknop in `RegistratieDialog` en `html-to-image` in `package.json`.
 
-| Bestand | Wat er stuk ging | Herstel |
-|---|---|---|
-| `components/instellingen-weergave.tsx` | Mijn oude versie (met props) overschreef v0's menu-versie. Dat was de fout in je Vercel-log. | Terug naar v0's versie, inclusief de tekstaanpassingen van PR #21 |
-| `app/actions/registraties.ts` | Mijn herschrijving kende de teller `laatsteTemperatuur` niet (door v0 toegevoegd). Deze fout zou je na de eerste hebben gekregen. | Teller toegevoegd, op dezelfde plek en op dezelfde manier als v0 |
-| `components/account-weergave.tsx` | De kop "Uitloggen" boven de uitlogknop (v0) was weg | 4 regels terug |
-| `app/login/page.tsx` | "Welkom!" werd weer "Welkom terug" | Eén regel terug. Mijn melding bij een verwijderd account blijft staan |
-| `package.json` | `version` stond weer op 0.1.0, terwijl je 1.1.0 had (Instellingen toont die versie) | `1.1.0` terug. De naam `billenboek` en het ontbreken van Drizzle blijven |
+## Aanpassingen voor Supabase (anders dan in de neon-repo)
+
+- Geen Drizzle: de kolom komt in `lib/db/mappers.ts` (`luierFromDb`/`luierToDb`) en `lib/registratie-soorten.ts`.
+- **SQL nodig** (zie stap 1): `supabase/migrations/20261014000000_luier_notitie.sql`.
+- `RegistratieDialog` behoudt de kindnaam ("Voor ...") en `pr-8` uit `billenboek`; alleen de deelknop is erbij gekomen.
 
 ## Toepassen
 
-Beste manier: `git apply herstel-v0.patch` op een branch vanaf `main`. Of pak de zip uit over je projectmap: er zitten alleen deze vijf bestanden in, en er wordt niets verwijderd. Niet via v0 uploaden.
+1. Draai in de Supabase SQL Editor: `alter table public.luiers add column if not exists notitie text;` (idempotent). Doe dit **voor** je de code uitrolt, anders mislukt het opslaan van luiers.
+2. Kies een van twee manieren:
+   - Patch: `git checkout -b luier-notitie-kaart-delen`, `git apply luier-notitie-kaart-delen.patch`, daarna `pnpm install` en commit ook `pnpm-lock.yaml` (de patch bevat de lockfile bewust niet).
+   - Zip: pak uit over je projectmap (bevat ook de bijgewerkte `pnpm-lock.yaml`). Er wordt niets verwijderd.
+3. Push de branch en controleer de Vercel-preview voordat je naar `main` mergt.
 
-## Wat ik deze keer heb gedaan
+Niet via een v0-zip-upload als je ook bestanden hebt die niet in deze zip zitten: v0 verwijdert die dan stilletjes.
 
-- De echte `main` opgehaald in plaats van mijn oude kloon te gebruiken.
-- Met een driewegvergelijking gezocht naar álle bestanden die zowel door v0 als door mij zijn gewijzigd (er waren er vijf).
-- `tsc --noEmit` op `main` met en zonder de herstelwijzigingen: eerst 2 fouten, daarna 0.
-- Een volledige productiebuild gedraaid (`next build`): compileren, TypeScript, pagina's verzamelen en alle 17 routes slagen. Mijn omgeving kan Google Fonts niet ophalen; ik heb het lettertype nagebootst, de rest van de build is echt.
-- De registratie-acties opnieuw naast de oude versie van `main` gelegd (62 aanroepen, inclusief de temperatuurteller): identiek.
+## Testlijst (preview)
+
+1. Nieuwe luier met notitie opslaan; de notitie staat onder de luier op de tijdlijn.
+2. Bestaande luier openen, notitie toevoegen/wijzigen/leegmaken.
+3. Bestaande luiers zonder notitie tonen gewoon.
+4. Open een bestaande registratie: het deel-icoon staat naast de prullenbak; bij een nieuwe registratie staat het er niet.
+5. Delen op je telefoon opent het deelmenu met een PNG; op desktop wordt de afbeelding gedownload.
+6. Deel een vitamine-kaart en een luier-kaart in donkere modus: kleuren blijven leesbaar (letterlijke hex-waarden).
 
 ## Niet getest
 
-De echte Supabase en het gedrag in de browser. De Vercel-build zelf is de laatste controle.
-
-## Testlijst (op de preview)
-
-1. De build is groen.
-2. Instellingen opent als menu met Account, Gezin, Formulieren en tellers en App-info; tekst bij Account noemt "uitloggen".
-3. Instellingen → Account: de kop "Uitloggen" staat boven de knop.
-4. Vandaag: de teller laatste temperatuur toont de meest recente meting.
-5. Inlogscherm toont "Welkom!".
-6. Instellingen toont versie 1.1.0 (App-info).
-
-## Losse opmerkingen
-
-- Vercel meldt dat `middleware.ts` in Next.js 16 `proxy.ts` hoort te heten. Dat is nu alleen een waarschuwing. Het hernoemen verandert ook de runtime, dus dat doe ik niet ongevraagd.
-- `LEES_MIJ.md` in de hoofdmap van de repo is mijn leveringsnotitie en hoort daar eigenlijk niet. Verwijderen kan zonder gevolgen; de README is het blijvende document.
+Echte Supabase, browser en de deelfunctie op een telefoon; geen `next build` gedraaid.

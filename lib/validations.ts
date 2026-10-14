@@ -30,6 +30,7 @@ export const luierSchema = z
     plas: z.boolean().default(false),
     poep: z.boolean().default(false),
     schoon: z.boolean().default(false),
+    notitie: z.string().max(500).optional(),
   })
   .refine((d) => d.plas || d.poep || d.schoon, {
     message: "Kies minstens één optie",
