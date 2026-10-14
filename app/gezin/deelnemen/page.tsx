@@ -13,5 +13,5 @@ export default async function DeelnemenPage({ searchParams }: { searchParams: Pr
   let heeftGezin = false
   try { await getActiefGezinId(); heeftGezin = true } catch {}
   if (heeftGezin) redirect("/")
-  return <GezinOnboarding initialCode={params.code ?? ""} />
+  return <GezinOnboarding />
 }

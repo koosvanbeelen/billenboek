@@ -13,5 +13,5 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   let heeftGezin = false
   try { await getActiefGezinId(); heeftGezin = true } catch {}
   if (heeftGezin) redirect("/")
-  return <GezinOnboarding initialCode={params.code ?? ""} />
+  return <GezinOnboarding />
 }
