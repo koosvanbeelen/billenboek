@@ -49,8 +49,7 @@ export function GezinOnboarding() {
                 const kind = await voegKindToe(invoer)
                 if (!kind.ok) return kind
 
-                router.replace("/")
-                router.refresh()
+                router.replace(`/gezin/uitnodigen?code=${encodeURIComponent(gezin.code)}`)
                 return { ok: true }
               }}
               onKlaar={() => undefined}
