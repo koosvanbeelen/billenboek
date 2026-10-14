@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { BookHeart, ShieldCheck } from "lucide-react"
 
-export function AuthShell({ children, eyebrow, title, description }: { children: ReactNode; eyebrow: string; title: string; description: string }) {
+export function AuthShell({ children, eyebrow, title, description, logoTitle = false }: { children: ReactNode; eyebrow: string; title: string; description: string; logoTitle?: boolean }) {
   return (
     <main className="relative flex min-h-dvh items-center overflow-hidden bg-[#f5f7f4] px-4 py-8 text-foreground sm:px-6">
       <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-primary/10 blur-3xl" />
@@ -14,7 +14,7 @@ export function AuthShell({ children, eyebrow, title, description }: { children:
           </div>
           <div className="flex items-center gap-2 text-sm text-primary-foreground/75"><ShieldCheck className="size-4" />Je gegevens blijven binnen jouw gezin</div>
         </section>
-        <section className="flex items-center justify-center p-5 sm:p-10"><div className="w-full max-w-sm"><div className="mb-7 lg:hidden"><div className="flex items-center gap-3 text-lg font-semibold"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookHeart className="size-5" /></span>Billenboek</div></div><p className="text-sm font-medium text-primary">{eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p><div className="mt-8">{children}</div></div></section>
+        <section className="flex items-center justify-center p-5 sm:p-10"><div className="w-full max-w-sm"><div className="mb-7 lg:hidden"><div className="flex items-center gap-3 text-lg font-semibold"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookHeart className="size-5" /></span>Billenboek</div></div>{logoTitle ? <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/header-WBhDcpGimygUa9QHxCmjYn12JKBAoH.png" alt="BillenBoek" className="mb-6 h-auto w-full" /> : null}<p className="text-sm font-medium text-primary">{eyebrow}</p><h1 className={logoTitle ? "sr-only" : "mt-2 text-3xl font-semibold tracking-tight"}>{title}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p><div className="mt-8">{children}</div></div></section>
       </div>
     </main>
   )
