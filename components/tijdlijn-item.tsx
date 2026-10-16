@@ -70,9 +70,7 @@ export function samenvatting(item: Item): React.ReactNode {
       return delen.join(" · ") || "Groeimeting"
     }
     case "slapen":
-      return `Geslapen · ${formatTijd(item.record.start)}–${formatTijd(item.record.einde)} · ${formatDuur(item.record.duurMinuten)}${
-        item.record.locatie ? ` · ${item.record.locatie}` : ""
-      }`
+      return formatDuur(item.record.duurMinuten)
     case "huilen":
       return `Gehuild · ${formatDuur(item.record.duurMinuten)}${
         item.record.oorzaak ? ` · ${item.record.oorzaak}` : ""
@@ -136,7 +134,7 @@ export function TijdlijnItem({
         <div className="flex items-baseline gap-2">
           <span className="font-semibold tabular-nums text-card-foreground">
             {item.soort === "slapen"
-              ? `${formatTijd(item.record.start)}–${formatTijd(item.record.einde)}`
+              ? `${formatTijd(item.record.start)} - ${formatTijd(item.record.einde)}`
               : formatTijd(item.datumTijd)}
           </span>
           <span className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
