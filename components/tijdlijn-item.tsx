@@ -135,7 +135,9 @@ export function TijdlijnItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="font-semibold tabular-nums text-card-foreground">
-            {formatTijd(item.datumTijd)}
+            {item.soort === "slapen"
+              ? `${formatTijd(item.record.start)}–${formatTijd(item.record.einde)}`
+              : formatTijd(item.datumTijd)}
           </span>
           <span className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {meta.label}
