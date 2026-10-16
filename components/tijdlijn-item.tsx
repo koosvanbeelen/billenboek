@@ -70,7 +70,7 @@ export function samenvatting(item: Item): React.ReactNode {
       return delen.join(" · ") || "Groeimeting"
     }
     case "slapen":
-      return `Geslapen · ${formatDuur(item.record.duurMinuten)}${
+      return `Geslapen · ${formatTijd(item.record.start)}–${formatTijd(item.record.einde)} · ${formatDuur(item.record.duurMinuten)}${
         item.record.locatie ? ` · ${item.record.locatie}` : ""
       }`
     case "huilen":
