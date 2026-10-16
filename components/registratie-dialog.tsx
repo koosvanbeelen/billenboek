@@ -62,7 +62,7 @@ export type Bewerking =
       // Voorgevuld vanuit een gestopte (nog niet opgeslagen) live timer.
       voorinvulling?: { start: string; einde: string }
       // Start de live timer; alleen gezet bij een geheel lege, nieuwe registratie.
-      onStartTimer?: () => void
+      onStartTimer?: (start: string) => void
       // Wist de bijbehorende timermeting; gezet zodra er een voorinvulling is.
       wisTimer?: () => void
     }
@@ -188,8 +188,8 @@ export function RegistratieDialog({
               }}
               onStartTimer={
                 bewerking.onStartTimer
-                  ? () => {
-                      bewerking.onStartTimer?.()
+                  ? (start) => {
+                      bewerking.onStartTimer?.(start)
                       onClose()
                     }
                   : undefined

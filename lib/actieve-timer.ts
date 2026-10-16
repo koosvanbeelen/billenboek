@@ -93,10 +93,10 @@ export function useActieveTimer(soort: TimerSoort, kindId: string) {
   const entry = alle[soort]
   const status: TimerStatus = !entry ? "uit" : entry.einde === null ? "lopend" : "wacht"
 
-  const beginTimer = useCallback(() => {
+  const beginTimer = useCallback((start = nuInputWaarde()) => {
     const nieuw: TimerState = {
       ...leesOpgeslagenWaarde(kindId),
-      [soort]: { start: nuInputWaarde(), einde: null },
+      [soort]: { start, einde: null },
     }
     schrijf(kindId, nieuw)
     setAlle(nieuw)

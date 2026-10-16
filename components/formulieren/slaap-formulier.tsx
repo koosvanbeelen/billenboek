@@ -3,6 +3,13 @@
 import { useMemo, useState } from "react"
 import { Timer } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,7 +27,7 @@ type Props = {
   // Start de live timer en sluit het formulier, zodat de rest van de app
   // ondertussen gewoon gebruikt kan worden. Alleen aanwezig bij een geheel
   // nieuwe, lege registratie (geen bestaand item, geen voorinvulling).
-  onStartTimer?: () => void
+  onStartTimer?: (start: string) => void
 }
 
 export function SlaapFormulier({
@@ -43,6 +50,8 @@ export function SlaapFormulier({
   const [locatie, setLocatie] = useState(bestaand?.locatie ?? "")
   const [notitie, setNotitie] = useState(bestaand?.notitie ?? "")
   const [fout, setFout] = useState<string | null>(null)
+  const [starttijdVragen, setStarttijdVragen] = useState(false)
+  const [timerStart, setTimerStart] = useState(start)
 
   const duur = useMemo(() => duurInMinuten(start, einde), [start, einde])
   const duurGeldig = new Date(`${einde}:00.000Z`) > new Date(`${start}:00.000Z`)
@@ -79,7 +88,10 @@ export function SlaapFormulier({
         <>
           <Button
             type="button"
-            onClick={onStartTimer}
+            onClick={() => {
+              setTimerStart(nuInputWaarde())
+              setStarttijdVragen(true)
+            }}
             size="lg"
             variant="outline"
             className="h-12 w-full border-temp-good/40 text-base text-temp-good hover:bg-temp-good/10 hover:text-temp-good"
@@ -139,6 +151,34 @@ export function SlaapFormulier({
       <Button onClick={verstuur} disabled={bezig} size="lg" className="h-12 w-full text-base">
         {bezig ? "Bezig..." : bestaand ? "Bijwerken" : "Opslaan"}
       </Button>
+
+      <Dialog open={starttijdVragen} onOpenChange={setStarttijdVragen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Starttijd slapen</DialogTitle>
+            <DialogDescription>
+              Wanneer is het slapen begonnen? De huidige tijd is alvast ingevuld.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-5">
+            <Field>
+              <FieldLabel>Start</FieldLabel>
+              <DatumTijdKiezer waarde={timerStart} onChange={setTimerStart} />
+            </Field>
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 w-full text-base"
+              onClick={() => {
+                onStartTimer?.(timerStart)
+                setStarttijdVragen(false)
+              }}
+            >
+              Start timer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
