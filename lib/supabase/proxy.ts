@@ -1,16 +1,16 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { getSupabaseEnv } from "@/lib/supabase/env"
+import { proxyDoorstuurPad } from "@/lib/supabase/proxy-beleid"
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
   const env = getSupabaseEnv()
 
   const { pathname } = request.nextUrl
-  const publicRoute = pathname === "/login" || pathname === "/registreren" || pathname === "/wachtwoord-vergeten" || pathname === "/gezin/deelnemen" || pathname === "/gezin/onboarding" || pathname.startsWith("/auth/")
   if (!env) {
-    if (publicRoute) return response
-    return NextResponse.redirect(new URL("/login", request.url))
+    const doel = proxyDoorstuurPad(pathname, false)
+    return doel ? NextResponse.redirect(new URL(doel, request.url)) : response
   }
 
   const supabase = createServerClient(
@@ -37,8 +37,12 @@ export async function updateSession(request: NextRequest) {
   // Bij een project met de oudere gedeelde JWT-sleutel valt getClaims vanzelf terug op een
   // netwerkaanroep.
   const { data: claimsData } = await supabase.auth.getClaims()
-  const user = claimsData?.claims?.sub ? claimsData.claims : null
-  if (!user && !publicRoute) return NextResponse.redirect(new URL("/login", request.url))
-  if (user && pathname === "/login") return NextResponse.redirect(new URL("/", request.url))
+  const heeftClaims = Boolean(claimsData?.claims?.sub)
+  // Let op: hier bewust geen redirect van /login naar "/" voor wie claims heeft. getClaims
+  // controleert alleen de JWT lokaal; bestaat de sessie bij Supabase niet meer (ingetrokken,
+  // gebruiker verwijderd, uitgelogd op een ander apparaat) dan stuurt de layout (getUser) naar
+  // /login terug en ontstaat een eindeloze lus. De loginpagina doet die redirect zelf met getUser().
+  const doel = proxyDoorstuurPad(pathname, heeftClaims)
+  if (doel) return NextResponse.redirect(new URL(doel, request.url))
   return response
 }
