@@ -106,11 +106,27 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
     return data ?? []
   }
 
-  // Alle twaalf queries tegelijk, niet na elkaar.
-  const [perSoort, laatsteVoedingRij, laatsteLuierRij] = await Promise.all([
+  // Slaap telt vanaf de *eindtijd* (niet de start): "tijd sinds laatste slaap" is
+  // de tijd dat het kind wakker is. Een lopende slaap staat nog niet in de
+  // database (alleen als timer in localStorage), dus die komt hier niet voor.
+  const laatsteSlaapQuery = async () => {
+    const { data, error } = await supabase
+      .from("slapen")
+      .select("einde")
+      .eq("gezin_id", gezinId)
+      .eq("kind_id", kindId)
+      .order("einde", { ascending: false })
+      .limit(1)
+    if (error) throw dbFout("registraties", error)
+    return data ?? []
+  }
+
+  // Alle queries tegelijk, niet na elkaar.
+  const [perSoort, laatsteVoedingRij, laatsteLuierRij, laatsteSlaapRij] = await Promise.all([
     Promise.all(SOORT_VOLGORDE.map(dagQuery)),
     laatsteQuery("voedingen"),
     laatsteQuery("luiers"),
+    laatsteSlaapQuery(),
   ])
   const rijen = Object.fromEntries(SOORT_VOLGORDE.map((soort, i) => [soort, perSoort[i]])) as Record<Soort, any[]>
 
@@ -138,6 +154,7 @@ export async function getDagGegevens(datum: string): Promise<DagGegevens> {
     huilMinuten: rijen.huilen.reduce((s, r) => s + r.duurMinuten, 0),
     laatsteVoeding: laatsteVoedingRij[0] ? datumNaarInput(laatsteVoedingRij[0].datum_tijd) : null,
     laatsteLuier: laatsteLuierRij[0] ? datumNaarInput(laatsteLuierRij[0].datum_tijd) : null,
+    laatsteSlaapEinde: laatsteSlaapRij[0]?.einde ? datumNaarInput(laatsteSlaapRij[0].einde) : null,
   }
 
   return { datum, items, tellers }

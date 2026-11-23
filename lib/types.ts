@@ -132,6 +132,10 @@ export type DagTellers = {
   // nog nooit een geregistreerd is. Gebruikt voor "tijd sinds laatste...".
   laatsteVoeding: string | null
   laatsteLuier: string | null
+  // Eindtijd van de meest recente slaapregistratie over de hele geschiedenis
+  // (zelfde formaat als hierboven), of null als er nog nooit slaap is
+  // geregistreerd. Gebruikt voor "tijd sinds laatste slaap".
+  laatsteSlaapEinde: string | null
 }
 
 export type DagGegevens = {

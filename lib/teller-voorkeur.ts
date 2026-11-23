@@ -14,6 +14,7 @@ export type TellerId =
   | "temperatuur"
   | "tijdSindsVoeding"
   | "tijdSindsLuier"
+  | "tijdSindsSlaap"
   | "mlGekolfd"
   | "totaleSlaaptijd"
   | "totaleHuiltijd"
@@ -29,6 +30,7 @@ export const ALLE_TELLERS: TellerId[] = [
   "temperatuur",
   "tijdSindsVoeding",
   "tijdSindsLuier",
+  "tijdSindsSlaap",
   "mlGekolfd",
   "totaleSlaaptijd",
   "totaleHuiltijd",

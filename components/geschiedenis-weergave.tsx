@@ -50,7 +50,10 @@ export function GeschiedenisWeergave({ data, dag, toonDetail }: Props) {
   const [zichtbareTellers, zetTeller] = useZichtbareTellers()
   const { actiefKind } = useKinderen()
   const geschiedenisTellers: TellerId[] = ALLE_TELLERS.filter(
-    (id) => id !== "tijdSindsVoeding" && id !== "tijdSindsLuier",
+    (id) =>
+      id !== "tijdSindsVoeding" &&
+      id !== "tijdSindsLuier" &&
+      id !== "tijdSindsSlaap",
   )
   const zichtbareGeschiedenisTellers = zichtbareTellers.filter((id) =>
     geschiedenisTellers.includes(id),
